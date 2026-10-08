@@ -75,6 +75,18 @@ On Debian or Ubuntu:
 sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 python3-venv git curl unzip
 ```
 
+## Getting a build without building
+
+Every push to `main` is built by GitHub Actions (`.github/workflows/ps5.yml`).
+Open the repository's **Actions** tab, pick the latest green **PS5 build** run,
+and download the `PPSA99620` artifact at the bottom of its page. Unzipped, it
+is the title folder described below, without the game data: put `bios.pk3`
+and `data/` in `/data/ringracers/` on the console (see "Installing").
+
+On a fork, GitHub leaves workflows off until someone presses **I understand
+my workflows, go ahead and enable them** on the Actions tab; the **Run
+workflow** button there starts a build by hand.
+
 ## Building
 
 ```bash
@@ -132,9 +144,10 @@ upload instead of 750 MB.
 The game's home directory, where `.ringracers/` with your config, game data,
 profiles, replays, screenshots, add-ons and `latest-log.txt` lives, is
 `/data/ringracers` if the title can write there, otherwise `/download0`, the
-title's own storage. Only the first can be reached over FTP. Whether a title
-can write to `/data` depends on the loader; check the log (below) to see which
-one was used.
+title's own storage. Only the first can be reached over FTP. The game creates
+`/data/ringracers` on startup if it is missing, so this holds even when the
+game data is bundled into the title. Whether a title can write to `/data`
+depends on the loader; check the log (below) to see which one was used.
 
 ## Command line arguments
 
@@ -188,6 +201,38 @@ Things most likely to need attention on a first run, in rough order:
   keyboard and nothing else. The log says `USB keyboard ready` or why not.
   Whether a keyboard plugged in mid-game is picked up has not been tried; if
   one does nothing, restart the game with it plugged in.
+* **Worker threads.** The software renderer draws on a pool of threads. If the
+  game crashes or hangs as the first level appears, `-singlethreaded` in the
+  arguments file runs everything on one thread and tells the two apart.
+
+## First console test
+
+Nobody has run this on a PS5 yet, so the first runs are the test. Go down the
+list, stop at the first step that fails, and send back that step's number
+with `ringracers-stdout.txt` and `.ringracers/latest-log.txt` from
+`/data/ringracers/` (or `/download0` if that is where the log said home was).
+
+1. **It launches.** The tile shows the Ring Racers art; starting it gets past
+   the PS5 splash screen. If it goes straight back to the home screen, check
+   for a notification first: it names a missing `bios.pk3` or the error.
+2. **The title screen draws**, with the software renderer (the default).
+3. **The controller works** in the menus: d-pad and stick move, Cross
+   confirms, Circle goes back.
+4. **Sound and music play** on the title screen and in the menus.
+5. **A race runs.** Start Time Attack or a Grand Prix and finish a lap. Note
+   whether it feels smooth; Options, HUD, Show FPS puts the frame rate on
+   screen.
+6. **The other renderer.** Options, Video, Advanced, Renderer: Legacy GL; or
+   `-opengl` in `ringracers-args.txt`. Same checks as 2 and 5.
+7. **Quitting** from the main menu returns to the home screen.
+8. **Saving.** Change an option, quit, start again: the change is kept.
+9. **Two players.** Sign in a second user from the PS button's menu with a
+   second controller and start a splitscreen race.
+10. **Online.** Open the server browser; host a game and join it from a PC
+    running the same build (2.4 servers are not listed, see above).
+11. **Display modes.** `-ps5res 2160` and `-ps5hz 120` in the arguments file;
+    `vid_info` in the console shows what the TV accepted.
+12. **USB keyboard**, if you have one: the console (the key above Tab) and chat.
 
 ## How the port is put together
 

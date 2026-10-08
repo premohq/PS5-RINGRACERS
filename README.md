@@ -1,4 +1,4 @@
-# Dr. Robotnik's Ring Racers
+# Dr. Robotnik's Ring Racers for PlayStation 5
 
 <p align="center">
   <a href="https://www.kartkrew.org">
@@ -6,78 +6,105 @@
   </a>
 </p>
 
-Dr. Robotnik's Ring Racers is a kart racing video game originally based on the 3D Sonic the Hedgehog fangame [Sonic Robo Blast 2](https://srb2.org/), itself based on a modified version of [Doom Legacy](http://doomlegacy.sourceforge.net/).
+An unofficial port of [Dr. Robotnik's Ring Racers](https://www.kartkrew.org/) to
+jailbroken PlayStation 5 consoles, as a native title with its own tile on the
+home screen.
 
-Ring Racers' source code is available to users under the GNU General Public License version 2.0 or higher.
+**It is not affiliated with Kart Krew.** Please do not report problems with this
+port to them.
 
-## Links
+**It has not been run on a console yet.** It builds, links, converts and signs
+into a title folder, and every piece follows a PS5 project that has run on
+hardware, but the game itself is untested on a PS5. The first runs are the
+test: [docs/PS5.md](docs/PS5.md#first-console-test) has a checklist and says
+what to send back.
 
-- [Kart Krew Dev Website](https://www.kartkrew.org/)
+## What it does
+
+The game is upstream Ring Racers, unchanged except for a platform layer in
+place of SDL (`src/ps5/`). So both renderers, the sound mixer, netplay, add-ons,
+replays and profiles are the PC version's.
+
+* 1080p, 1440p or 4K output at 60 or 120 Hz
+* DualSense controllers, up to four for splitscreen, with rumble and light bar
+* Online play with other copies of this build (not with public 2.4 servers;
+  [why](docs/PS5.md#online-play-and-versions))
+* USB keyboard for chat and the console
+
+[docs/PS5.md](docs/PS5.md) has the full list, including what is missing.
+
+## You need your own copy of the game
+
+No game data is in this repository. Install Ring Racers 2.4 from
+[kartkrew.org](https://www.kartkrew.org/) and copy its `bios.pk3` and `data/`
+folder to `/data/ringracers/` on the console.
+
+## Getting a build
+
+**Download one:** every push to `main` is built by GitHub Actions. Open the
+**Actions** tab, choose the latest green **PS5 build** run, and download the
+`PPSA99620` artifact.
+
+**Or build it** on Linux or WSL:
+
+```bash
+sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 python3-venv git curl unzip
+tools/ps5/build.sh
+```
+
+That fetches every SDK (pinned, checksummed), builds, and writes the title
+folder to `build/ps5/dist/PPSA99620/`. Add `--assets ~/RingRacers` to bundle the
+game data into it.
+
+## Installing
+
+1. Copy `bios.pk3` and `data/` to `/data/ringracers/` with an FTP client.
+2. Copy the `PPSA99620` folder to `/data/homebrew/`.
+3. Launch it the way your loader launches native titles (ShadowMountPlus, for
+   example).
+
+Settings, saves and logs go to `/data/ringracers/` too, where FTP can reach
+them. Command line arguments go in `/data/ringracers/ringracers-args.txt`.
+
+## Where the port lives
+
+| | |
+|---|---|
+| `src/ps5/` | the platform layer: video (EGL), input, sound, system, paths, threads |
+| `src/ps5/native/` | the title's C runtime: startup, the heap, the linker script |
+| `cmake/ps5/` | the CMake toolchain and the title link |
+| `tools/ps5/` | fetching the SDKs, building, packaging, the home screen art |
+| `docs/PS5.md` | everything above in detail, and how to report a problem |
+
+Changes to upstream's own code are few and each is marked `PS5`, `SRB2_PS5` or
+`PS5_CA_BUNDLE` with a comment saying why.
+
+## About Ring Racers
+
+Dr. Robotnik's Ring Racers is a kart racing game by **Kart Krew**, originally
+based on the 3D Sonic the Hedgehog fangame [Sonic Robo Blast 2](https://srb2.org/),
+itself based on a modified version of [Doom Legacy](http://doomlegacy.sourceforge.net/).
+This tree is upstream's `master` at `4bad15a` (2026-08-31); its home is
+[gitlab.com/kart-krew-dev/ring-racers](https://gitlab.com/kart-krew-dev/ring-racers),
+with a mirror at [KartKrewDev/RingRacers](https://github.com/KartKrewDev/RingRacers).
+The desktop build instructions are upstream's and still apply to this tree.
+
+- [Kart Krew Dev website](https://www.kartkrew.org/)
 - [Kart Krew Dev Discord](https://www.kartkrew.org/discord)
-- [SRB2 Forums](https://mb.srb2.org/)
+- [SRB2 forums](https://mb.srb2.org/)
 
-## Disclaimer
+### Disclaimer
 
-Dr. Robotnik's Ring Racers is a work of fan art made available for free without intent to profit or harm the intellectual property rights of the original works it is based on. Kart Krew Dev is in no way affiliated with SEGA Corporation. We do not claim ownership of any of SEGA's intellectual property used in Dr. Robotnik's Ring Racers.
+Dr. Robotnik's Ring Racers is a work of fan art made available for free without
+intent to profit or harm the intellectual property rights of the original works
+it is based on. Kart Krew Dev is in no way affiliated with SEGA Corporation. We
+do not claim ownership of any of SEGA's intellectual property used in Dr.
+Robotnik's Ring Racers.
 
-# Development
+## Licence
 
-## PlayStation 5
-
-This branch adds an unofficial PlayStation 5 build for jailbroken consoles,
-built from this source with `tools/ps5/build.sh`. It is not affiliated with
-Kart Krew. See [docs/PS5.md](docs/PS5.md) for what it supports, how to build
-and install it, and its limits.
-
-## Building from Source
-
-Ring Racers is built using a compatible C++ toolchain (GCC, MinGW, Clang and Apple Clang as of this writing), CMake, and Microsoft vcpkg. The compiler and runtime libraries must support the ISO C++17 standard and ISO C11 standard.
-
-On Linux platforms, you will need the following libraries available on the system.
-
-- libcurl
-- zlib
-- libpng
-- libogg
-- libvorbis
-- libvpx
-- libyuv
-- SDL2
-- libopus
-
-On Windows and macOS, you will need to install [vcpkg] instead to build these dependencies alongside the game.
-
-[vcpkg]: https://vcpkg.io/en/
-
-To configure and build the game, there are [CMake presets] (declared in `CMakePresets.json`). These presets require the ninja build script tool in addition to cmake and your C++ toolchain. Here is a non-exhaustive list of them:
-
-- ninja-debug: non-optimized, assertions enabled
-- ninja-develop: optimized, assertions enabled
-- ninja-release: optimized
-- ninja-x86_mingw_static_vcpkg-debug
-- ninja-x86_mingw_static_vcpkg-develop
-- ninja-x86_mingw_static_vcpkg-release
-- ninja-x64_osx_vcpkg-debug
-- ninja-x64_osx_vcpkg-develop
-- ninja-x64_osx_vcpkg-release
-- ninja-arm64_osx_vcpkg-debug
-- ninja-arm64_osx_vcpkg-develop
-- ninja-arm64_osx_vcpkg-release
-
-[CMake presets]: https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
-
-These presets depend on the `VCPKG_ROOT` environment variable being specified before the first run of the `cmake` command. Their build directories are pre-configured as subdirectories of `build/`.
-
-After all prerequisites are set-up, configure and build using the following commands, adjusting according to your target system:
-
-    cmake --preset ninja-x86_mingw_static_vcpkg-develop
-    cmake --build --preset ninja-x86_mingw_static_vcpkg-develop
-
-## Contributing
-
-We welcome external contributions from the community. If you are planning on making a large feature you intend to contribute to the project, please consider reaching out to us in the Kart Krew Dev public Discord server so we can coordinate with you.
-
-Our primary source repository is [hosted on gitlab.com](https://gitlab.com/kart-krew-dev/ring-racers). The Github repository is a mirror of this. If you submit a Pull Request to the Github repository, please keep in mind that we do not consistently monitor that mirror and may not see your request.
-
-All contributions must be made available under the GPL General Public License version 2.0, or public domain. Integrations for third party code must be made to code which is compatibly licensed.
-
+Ring Racers' source code is available under the GNU General Public License
+version 2 or later; see [LICENSE](LICENSE) and
+[LICENSE-3RD-PARTY.txt](LICENSE-3RD-PARTY.txt). The PS5 build links components
+under the GPL version 3 or later, so a PS5 binary built from this tree is
+distributed under the GPL version 3 or later as a whole.

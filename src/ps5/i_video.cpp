@@ -281,14 +281,24 @@ static bool InitEGL(void)
 	eglQuerySurface(g_display, g_surface, EGL_WIDTH, &g_surface_width);
 	eglQuerySurface(g_display, g_surface, EGL_HEIGHT, &g_surface_height);
 
-	EGLint refresh = hz;
-	eglGetDisplayModePS5(g_display, nullptr, nullptr, &refresh);
-	g_refresh_rate = refresh > 0 ? static_cast<uint32_t>(refresh) : 60;
+	// What was asked for; QueryRefreshRate corrects it after the first frame.
+	g_refresh_rate = static_cast<uint32_t>(hz);
 
-	CONS_Printf("EGL %d.%d, display %dx%d at %u Hz\n", major, minor,
-		g_surface_width, g_surface_height, g_refresh_rate);
+	CONS_Printf("EGL %d.%d, display %dx%d, asked for %d Hz\n", major, minor,
+		g_surface_width, g_surface_height, hz);
 
 	return true;
+}
+
+/// The display accepts or refuses 120 Hz only once a frame has been presented
+/// (ps5-opengl's docs/display-modes.md); until then eglGetDisplayModePS5
+/// reports the rate asked for. Asked again after the first present, so a TV
+/// that cannot do 120 Hz is not reported to the frame rate cap as one.
+static void QueryRefreshRate(void)
+{
+	EGLint refresh = 0;
+	if (eglGetDisplayModePS5(g_display, nullptr, nullptr, &refresh) && refresh > 0)
+		g_refresh_rate = static_cast<uint32_t>(refresh);
 }
 
 static void ShutdownEGL(void)
@@ -623,11 +633,12 @@ void I_StartupGraphics(void)
 	realwidth = static_cast<uint16_t>(vid.width);
 	realheight = static_cast<uint16_t>(vid.height);
 
-	VID_Command_Info_f();
-
 	graphics_started = true;
 
 	PS5_VideoPresent();
+	QueryRefreshRate();
+
+	VID_Command_Info_f();
 }
 
 void VID_StartupOpenGL(void)

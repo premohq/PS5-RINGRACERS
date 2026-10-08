@@ -1,0 +1,50 @@
+# Build the PlayStation 5 title on every push, so that a build to test is one
+# download away: the run's PPSA99620 artifact is the title folder, ready to
+# copy to the console. The game data is not in it; see docs/PS5.md.
+
+name: PS5 build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang-18 lld-18 libclang-rt-18-dev cmake ninja-build \
+            python3 python3-venv curl unzip git
+
+      # About 600 MB of SDKs, each checked against its pinned SHA-256 by
+      # tools/ps5/deps.sh whether it came from here or from the network.
+      - name: Cache the downloaded SDKs
+        uses: actions/cache@v4
+        with:
+          path: build/ps5-deps/downloads
+          key: ps5-deps-${{ hashFiles('tools/ps5/deps.sh') }}
+
+      - name: Build and package
+        run: tools/ps5/build.sh
+
+      # The folder rather than package.sh's zip, so that unzipping the
+      # artifact gives PPSA99620/ to upload, not another zip.
+      - name: Upload the title folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: PPSA99620
+          path: |
+            build/ps5/dist/
+            !build/ps5/dist/*.zip
+          if-no-files-found: error
