@@ -10,9 +10,10 @@
 #   PacBrew v0.40.2              prebuilt PS5 ports: curl, OpenSSL, zlib, libpng, Opus
 #   ps5-opengl SDK 1.0.1         OpenGL 4.6 / compatibility + EGL on the PS5's GPU
 #   ps5-native-app-boilerplate   the ELF -> eboot.bin converter and libc.prx runtime
+#   Pillow and etcpak (PyPI)     to draw the home screen art (tools/ps5/presentation.py)
 #
 # Host requirements (Debian/Ubuntu names): clang-18 lld-18 libclang-rt-18-dev
-# cmake ninja-build python3 curl unzip git.
+# cmake ninja-build python3 python3-venv curl unzip git.
 
 set -euo pipefail
 
@@ -110,7 +111,17 @@ if [[ ! -x $boilerplate/build/host/ps5-native-tool || ! -f $boilerplate/runtime/
 	(cd "$boilerplate" && bash tools/rebuild-libc.sh >&2)
 fi
 
+# --- Python, for the home screen art -----------------------------------------
+venv="$deps/venv"
+if ! "$venv/bin/python" -c 'import etcpak, PIL' >/dev/null 2>&1; then
+	say "creating a Python environment for the artwork"
+	rm -rf "$venv"
+	python3 -m venv "$venv" || { echo "python3 -m venv failed: install python3-venv" >&2; exit 2; }
+	"$venv/bin/pip" install --quiet --disable-pip-version-check "etcpak==0.9.15" "pillow==12.3.0" >&2
+fi
+
 cat <<EOF
+PS5_PYTHON=$venv/bin/python
 PS5_PAYLOAD_SDK=$sdk
 PS5_OPENGL_PREFIX=$opengl/sdk
 PS5_BOILERPLATE=$boilerplate

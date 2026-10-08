@@ -38,7 +38,9 @@ Treat the first runs as testing, and see "When it does not work" below.
 | Online play | yes | host and join, server browser, add-on downloads, STUN |
 | Add-ons | yes | from `.ringracers/addons` in the home directory, or downloaded from a server |
 | Replays, screenshots, profiles, unlocks | yes | saved in the home directory |
-| Keyboard and mouse | no | in-game chat needs a keyboard |
+| USB keyboard | yes, untested | chat, the console and keyboard controls, as on PC; see below |
+| On-screen keyboard | the game's own | every text field in the menus (names, server address, replay titles), with a controller |
+| Mouse | no | the game only uses it in menus on PC |
 | Discord Rich Presence | no | no Discord client on a console |
 | WebM movie recording | no | its libyuv has no PS5 port; GIF and PNG screenshots still work |
 
@@ -65,12 +67,12 @@ To host, forward UDP port 5029 to the console, as on PC.
 * Ring Racers 2.4 from [kartkrew.org](https://www.kartkrew.org/): you need its
   `bios.pk3` and `data/` folder. They are not in this repository.
 * To build: Linux or WSL with `clang-18`, `lld-18`, `libclang-rt-18-dev`,
-  `cmake`, `ninja-build`, `python3`, `git`, `curl` and `unzip`.
+  `cmake`, `ninja-build`, `python3`, `python3-venv`, `git`, `curl` and `unzip`.
 
 On Debian or Ubuntu:
 
 ```bash
-sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 git curl unzip
+sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 python3-venv git curl unzip
 ```
 
 ## Building
@@ -94,6 +96,13 @@ build/ps5/dist/PPSA99620/
 ```
 
 and `build/ps5/dist/PPSA99620.zip`, the same folder zipped.
+
+The home screen art is drawn at packaging time by `tools/ps5/presentation.py`
+from the Ring Racers logo and icon already in this repository: the pixel
+Robotnik icon, a purple checkered-track background with the logo for the
+selected tile, and the logo centred for the launch screen. To use your own,
+put `icon0.png` (512x512), `pic0.dds` and `pic1.dds` (3840x2160, BC7) in
+`tools/ps5/sce_sys/`.
 
 `--assets` copies `bios.pk3` and `data/` from a Ring Racers install into the
 title so it runs with nothing else on the console. Leave it out to keep the
@@ -174,6 +183,11 @@ Things most likely to need attention on a first run, in rough order:
   button menu.
 * **Audio.** The output is opened for the user who started the game, then for
   the system user.
+* **The USB keyboard.** Its library is loaded when the game starts rather than
+  linked in, so that a console that will not give it to a title loses the
+  keyboard and nothing else. The log says `USB keyboard ready` or why not.
+  Whether a keyboard plugged in mid-game is picked up has not been tried; if
+  one does nothing, restart the game with it plugged in.
 
 ## How the port is put together
 
@@ -200,6 +214,9 @@ Some details that cost time and are worth knowing before changing anything:
 * The browser's POSIX module (`libScePosixForWebKit`) is left out of the link
   entirely; `getaddrinfo`, `strcasestr` and `arc4random_buf` come from the
   payload SDK's `libc.a`, whose resolver uses `libSceNet`.
+* An import the system will not load stops a title from starting at all, so
+  anything optional (the USB keyboard) is loaded at run time with
+  `sceKernelLoadStartModule` instead of being linked.
 * The converter that makes `eboot.bin` refuses unresolved weak symbols. Two
   libraries have them (OpenSSL's `dladdr`, zstd's tracing hooks); they are
   defined in `src/ps5/native/runtime_shims.c`.

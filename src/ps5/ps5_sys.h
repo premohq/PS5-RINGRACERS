@@ -174,6 +174,13 @@ int32_t PS5_InitialUser(void);
 void PS5_StartupInput(void);
 void PS5_ShutdownInput(void);
 
+/// A USB keyboard, if the system lets the title load its library. The poll
+/// posts key events and reports which modifiers are held, the way SDL's
+/// keyboard state does on PC.
+void PS5_StartupKeyboard(void);
+void PS5_ShutdownKeyboard(void);
+void PS5_PollKeyboard(uint8_t *shift, uint8_t *ctrl, uint8_t *alt, int *caps);
+
 /// Is the system overlay (the PS button's menu) up? The game treats it as a
 /// lost window focus.
 int PS5_SystemHasFocus(void);

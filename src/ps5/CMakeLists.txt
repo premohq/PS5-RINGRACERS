@@ -7,6 +7,7 @@ target_sources(SRB2SDL2 PRIVATE
 	i_system.cpp
 	i_video.cpp
 	i_input.cpp
+	i_keyboard.cpp
 	i_sound.cpp
 	i_threads.c
 	i_net.c

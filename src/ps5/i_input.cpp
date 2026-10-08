@@ -374,6 +374,7 @@ void PS5_ShutdownInput(void)
 		g_pads[slot] = Pad {};
 	}
 
+	PS5_ShutdownKeyboard();
 	g_started = false;
 }
 
@@ -415,6 +416,7 @@ void I_GetEvent(void)
 void I_StartupInput(void)
 {
 	PS5_StartupInput();
+	PS5_StartupKeyboard();
 }
 
 void I_InitJoystick1(void) {}

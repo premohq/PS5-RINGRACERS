@@ -72,14 +72,14 @@ printf '==> [ps5] signing eboot.bin\n'
 "$tool" self --sign --in "$build/eboot.elf" --out "$app/eboot.bin" --magic "$fself_magic"
 
 cp "$param" "$app/sce_sys/param.json"
-cp "$repo/tools/ps5/sce_sys/icon0.png" "$app/sce_sys/icon0.png"
-# Backgrounds: the boilerplate's, until someone draws Ring Racers ones
-# (3840x2160 BC7 DDS; see the boilerplate's docs/PRESENTATION_ASSETS.md).
-for picture in pic0.dds pic1.dds; do
+# The icon and the two backgrounds, drawn from the logo and art in this
+# repository. A file of the same name in tools/ps5/sce_sys/ replaces the
+# drawn one: icon0.png at 512x512, pic0.dds and pic1.dds as 3840x2160 BC7.
+printf '==> [ps5] drawing the home screen art\n'
+"$PS5_PYTHON" "$repo/tools/ps5/presentation.py" "$app/sce_sys"
+for picture in icon0.png pic0.dds pic1.dds; do
 	if [[ -f $repo/tools/ps5/sce_sys/$picture ]]; then
 		cp "$repo/tools/ps5/sce_sys/$picture" "$app/sce_sys/$picture"
-	else
-		cp "$PS5_BOILERPLATE/sce_sys/$picture" "$app/sce_sys/$picture"
 	fi
 done
 cp "$PS5_BOILERPLATE/runtime/libc.prx" "$app/sce_module/libc.prx"

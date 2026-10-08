@@ -758,11 +758,12 @@ void I_OsPolling(void)
 		return;
 
 	I_GetEvent();
-	UpdateFocus();
 
-	// No keyboard: no modifiers held.
-	shiftdown = ctrldown = altdown = 0;
-	capslock = false;
+	int caps = 0;
+	PS5_PollKeyboard(&shiftdown, &ctrldown, &altdown, &caps);
+	capslock = caps ? true : false;
+
+	UpdateFocus();
 }
 
 namespace srb2::cvarhandler
