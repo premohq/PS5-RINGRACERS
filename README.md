@@ -33,17 +33,18 @@ replays and profiles are the PC version's.
 
 [docs/PS5.md](docs/PS5.md) has the full list, including what is missing.
 
-## You need your own copy of the game
+## The game data comes with it
 
-No game data is in this repository. Install Ring Racers 2.4 from
-[kartkrew.org](https://www.kartkrew.org/) and copy its `bios.pk3` and `data/`
-folder to `/data/ringracers/` on the console.
+Every build carries the game's `bios.pk3` and `data/` from Kart Krew's own
+Ring Racers 2.4 release, downloaded at build time and checked against a
+pinned SHA-256. They are not committed here: the music alone is 313 MB, over
+GitHub's 100 MB limit for a file.
 
 ## Getting a build
 
 **Download one:** every push is built by GitHub Actions. Open the
 **Actions** tab, choose the latest green **PS5 build** run, and download the
-`PPSA99620` artifact.
+`PPSA99620` artifact. It is the whole title, game data included.
 
 **Or build it** on Linux or WSL:
 
@@ -52,18 +53,17 @@ sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 py
 tools/ps5/build.sh
 ```
 
-That fetches every SDK (pinned, checksummed), builds, and writes the title
-folder to `build/ps5/dist/PPSA99620/`. Add `--assets ~/RingRacers` to bundle the
-game data into it.
+That fetches every SDK and the game data (pinned, checksummed), builds, and
+writes the title folder to `build/ps5/dist/PPSA99620/`. Add `--no-assets` to
+leave the game data out when it is already on the console.
 
 ## Installing
 
-1. Copy `bios.pk3` and `data/` to `/data/ringracers/` with an FTP client.
-2. Copy the `PPSA99620` folder to `/data/homebrew/`.
-3. Launch it the way your loader launches native titles (ShadowMountPlus, for
+1. Copy the `PPSA99620` folder to `/data/homebrew/` with an FTP client.
+2. Launch it the way your loader launches native titles (ShadowMountPlus, for
    example).
 
-Settings, saves and logs go to `/data/ringracers/` too, where FTP can reach
+Settings, saves and logs go to `/data/ringracers/`, where FTP can reach
 them. Command line arguments go in `/data/ringracers/ringracers-args.txt`.
 
 ## Where the port lives

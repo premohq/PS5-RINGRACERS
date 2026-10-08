@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Turn build/ps5/ringracers.elf into a PS5 title folder.
 #
-#   tools/ps5/package.sh [--assets /path/to/RingRacers]
+#   tools/ps5/package.sh [--assets /path/to/RingRacers | --no-assets]
 #
 # Output: build/ps5/dist/PPSA99620/ and build/ps5/dist/PPSA99620.zip. Upload
 # the folder (not the zip) to /data/homebrew/ on the console and launch it
 # with your homebrew loader; see docs/PS5.md.
 #
-# --assets copies bios.pk3 and data/ from a Ring Racers install into the
-# title, so it runs with nothing else on the console. Without it, the game
-# looks for them in /data/ringracers (see src/ps5/ps5_paths.cpp).
+# The title carries bios.pk3 and data/, so it runs with nothing else on the
+# console: Kart Krew's 2.4 release (tools/ps5/game-data.sh) unless --assets
+# names a Ring Racers install to copy them from. --no-assets leaves them out,
+# and the game looks for them in /data/ringracers (src/ps5/ps5_paths.cpp).
 #
 # The steps are those of the native-app boilerplate's tools/build.sh, after
 # its link: convert the LLVM ELF into a PS5 module, sign it as a development
@@ -20,11 +21,13 @@ set -euo pipefail
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 build=${PS5_BUILD_DIR:-"$repo/build/ps5"}
 assets=""
+bundle_assets=1
 
 while (( $# > 0 )); do
 	case "$1" in
-		--assets) assets=${2:?--assets needs a directory}; shift 2 ;;
-		*) echo "usage: $0 [--assets /path/to/RingRacers]" >&2; exit 2 ;;
+		--assets) assets=${2:?--assets needs a directory}; bundle_assets=1; shift 2 ;;
+		--no-assets) assets=""; bundle_assets=0; shift ;;
+		*) echo "usage: $0 [--assets /path/to/RingRacers | --no-assets]" >&2; exit 2 ;;
 	esac
 done
 
@@ -89,7 +92,11 @@ cp "$PS5_PAYLOAD_SDK/target/user/homebrew/etc/ca-bundle.crt" "$app/ca-bundle.crt
 
 "$tool" self --inspect --file "$app/eboot.bin"
 
-if [[ -n $assets ]]; then
+if (( bundle_assets )) && [[ -z $assets ]]; then
+	# A plain assignment, so that a failure in game-data.sh stops this script.
+	assets=$("$repo/tools/ps5/game-data.sh")
+fi
+if (( bundle_assets )); then
 	[[ -f $assets/bios.pk3 && -d $assets/data ]] || {
 		echo "$assets does not hold bios.pk3 and data/" >&2
 		exit 2

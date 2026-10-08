@@ -54,8 +54,8 @@ with other consoles running this build, and with PC players running a build of
 the same upstream commit.
 
 The game data is the same for both: `master` checks for exactly the archives
-2.4 ships (the hashes in `src/d_main.cpp` are identical), so a 2.4 install is
-what you copy to the console.
+2.4 ships (the hashes in `src/d_main.cpp` are identical), so the build bundles
+2.4's data.
 
 To host, forward UDP port 5029 to the console, as on PC.
 
@@ -64,8 +64,6 @@ To host, forward UDP port 5029 to the console, as on PC.
 * A PS5 that can run homebrew and launch native title folders, for example
   with ShadowMountPlus. The packaging tools this build uses were verified by
   their authors on firmware 6.02 and 12.70.
-* Ring Racers 2.4 from [kartkrew.org](https://www.kartkrew.org/): you need its
-  `bios.pk3` and `data/` folder. They are not in this repository.
 * To build: Linux or WSL with `clang-18`, `lld-18`, `libclang-rt-18-dev`,
   `cmake`, `ninja-build`, `python3`, `python3-venv`, `git`, `curl` and `unzip`.
 
@@ -80,8 +78,8 @@ sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 py
 Every push is built by GitHub Actions (`.github/workflows/ps5.yml`).
 Open the repository's **Actions** tab, pick the latest green **PS5 build** run,
 and download the `PPSA99620` artifact at the bottom of its page. Unzipped, it
-is the title folder described below, without the game data: put `bios.pk3`
-and `data/` in `/data/ringracers/` on the console (see "Installing").
+is the title folder described below, game data included (about 840 MB), ready
+to copy to the console (see "Installing").
 
 On a fork, GitHub leaves workflows off until someone presses **I understand
 my workflows, go ahead and enable them** on the Actions tab; the **Run
@@ -90,10 +88,10 @@ workflow** button there starts a build by hand.
 ## Building
 
 ```bash
-tools/ps5/build.sh --assets ~/RingRacers
+tools/ps5/build.sh
 ```
 
-That one command fetches everything (about 600 MB, checked against pinned
+That one command fetches everything (about 1.4 GB, checked against pinned
 SHA-256 sums, kept in `build/ps5-deps/`), builds the game into `build/ps5/`, and
 writes the title folder:
 
@@ -103,8 +101,8 @@ build/ps5/dist/PPSA99620/
     sce_module/libc.prx
     sce_sys/param.json  icon0.png  pic0.dds  pic1.dds
     ca-bundle.crt
-    bios.pk3            <- with --assets
-    data/               <- with --assets
+    bios.pk3            <- unless --no-assets
+    data/               <- unless --no-assets
 ```
 
 and `build/ps5/dist/PPSA99620.zip`, the same folder zipped.
@@ -116,12 +114,19 @@ selected tile, and the logo centred for the launch screen. To use your own,
 put `icon0.png` (512x512), `pic0.dds` and `pic1.dds` (3840x2160, BC7) in
 `tools/ps5/sce_sys/`.
 
-`--assets` copies `bios.pk3` and `data/` from a Ring Racers install into the
-title so it runs with nothing else on the console. Leave it out to keep the
-title small and put the game data on the console separately (see below).
+The title carries `bios.pk3` and `data/` so it runs with nothing else on the
+console. They come from the archive Kart Krew attach to their
+[v2.4 release](https://github.com/KartKrewDev/RingRacers/releases/tag/v2.4)
+for packagers (Flathub bundles the same file), fetched by
+`tools/ps5/game-data.sh` and checked against a pinned SHA-256. They are not
+committed to this repository: `music.pk3` alone is 313 MB, over GitHub's
+100 MB limit for a file. `--assets ~/RingRacers` copies them from a Ring
+Racers install instead, and `--no-assets` leaves them out to keep the title
+small when the game data is already on the console (see below).
 
 The pieces can also be run on their own: `tools/ps5/deps.sh` fetches and
-prepares the toolchain and prints where it put it; `cmake/ps5/Toolchain-PS5.cmake`
+prepares the toolchain and prints where it put it; `tools/ps5/game-data.sh`
+does the same for the game data; `cmake/ps5/Toolchain-PS5.cmake`
 is an ordinary CMake toolchain file; `tools/ps5/package.sh` turns
 `build/ps5/ringracers.elf` into the title folder.
 
@@ -133,11 +138,11 @@ with an FTP client, then launch it the way your loader launches native titles.
 The game looks for `bios.pk3` and `data/` in these places, in order:
 
 1. `/data/ringracers/`
-2. the title folder itself (`/app0`), where `--assets` puts them
+2. the title folder itself (`/app0`), where the build puts them
 3. `/mnt/usb0/ringracers/`, `/mnt/usb1/ringracers/`, `/mnt/ext0/ringracers/`
 
-Keeping them in `/data/ringracers/` means a new build of the title is a 60 MB
-upload instead of 750 MB.
+Copy them to `/data/ringracers/` once and build with `--no-assets`, and a new
+build of the title is a 60 MB upload instead of 840 MB.
 
 ### Where your files go
 
