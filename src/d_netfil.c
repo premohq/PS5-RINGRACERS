@@ -1841,6 +1841,10 @@ void CURLPrepareFile(const char* url, int dfilenum)
 		curl_origtotalfilesize = curl_curfile->totalsize;
 
 		curl_easy_setopt(http_handle, CURLOPT_URL, va("%s/%s", url, curl_realname));
+#ifdef PS5_CA_BUNDLE
+		// See the same in http-mserv.c.
+		curl_easy_setopt(http_handle, CURLOPT_CAINFO, PS5_CA_BUNDLE);
+#endif
 
 		// Only allow HTTP and HTTPS
 #if LIBCURL_VERSION_MAJOR > 7 || (LIBCURL_VERSION_MAJOR == 7 && LIBCURL_VERSION_MINOR >= 85)

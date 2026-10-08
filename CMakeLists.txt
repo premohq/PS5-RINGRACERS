@@ -63,14 +63,22 @@ option(SRB2_CONFIG_TRACY "Compile with Tracy profiling enabled" OFF)
 option(SRB2_CONFIG_ASAN "Compile with AddressSanitizer (libasan)." OFF)
 
 # Dependencies
+if(PS5)
+	# PlayStation 5 native title: see cmake/ps5/ and src/ps5/. This also
+	# switches off the features that platform cannot have.
+	include(cmake/ps5/PS5Platform.cmake)
+endif()
+
 add_subdirectory(thirdparty)
 
+if(NOT PS5) # PS5Platform.cmake provides these targets; there is no SDL there.
 find_package(Threads REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(PNG REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(CURL REQUIRED)
 find_package(Opus REQUIRED)
+endif()
 if (SRB2_CONFIG_ENABLE_WEBM_MOVIES)
 	find_package(YUV REQUIRED)
 
@@ -93,6 +101,11 @@ set(SRB2_SDL2_EXE_SUFFIX "" CACHE STRING "Optional executable suffix, separated 
 set(GIT_EXECUTABLE "git" CACHE FILEPATH "Path to git binary")
 
 add_executable(SRB2SDL2 MACOSX_BUNDLE WIN32)
+if(PS5)
+	# Linked by the rule in cmake/ps5/PS5Platform.cmake, then turned into an
+	# eboot.bin by tools/ps5/package.sh.
+	set_target_properties(SRB2SDL2 PROPERTIES LINKER_LANGUAGE CXX SUFFIX ".elf")
+endif()
 target_compile_features(SRB2SDL2 PRIVATE c_std_17 cxx_std_20)
 set_target_properties(SRB2SDL2 PROPERTIES
 	C_STANDARD 17

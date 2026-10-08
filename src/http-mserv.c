@@ -198,6 +198,11 @@ HMS_connect (const char *format, ...)
 	}
 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
+#ifdef PS5_CA_BUNDLE
+	// The PS5's curl was built to look for certificates under /user/homebrew,
+	// outside a title's sandbox; the title carries its own (tools/ps5/package.sh).
+	curl_easy_setopt(curl, CURLOPT_CAINFO, PS5_CA_BUNDLE);
+#endif
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 

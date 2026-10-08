@@ -22,6 +22,13 @@ Dr. Robotnik's Ring Racers is a work of fan art made available for free without 
 
 # Development
 
+## PlayStation 5
+
+This branch adds an unofficial PlayStation 5 build for jailbroken consoles,
+built from this source with `tools/ps5/build.sh`. It is not affiliated with
+Kart Krew. See [docs/PS5.md](docs/PS5.md) for what it supports, how to build
+and install it, and its limits.
+
 ## Building from Source
 
 Ring Racers is built using a compatible C++ toolchain (GCC, MinGW, Clang and Apple Clang as of this writing), CMake, and Microsoft vcpkg. The compiler and runtime libraries must support the ISO C++17 standard and ISO C11 standard.

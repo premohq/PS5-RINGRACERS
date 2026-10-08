@@ -169,7 +169,7 @@ static void GL_MSG_Warning(const char *format, ...)
 	vsnprintf(str, 4096, format, arglist);
 	va_end(arglist);
 
-#ifdef HAVE_SDL
+#if defined (HAVE_SDL) || defined (SRB2_PS5)
 	CONS_Alert(CONS_WARNING, "%s", str);
 #endif
 #ifdef DEBUG_TO_FILE
@@ -192,7 +192,7 @@ static void GL_MSG_Error(const char *format, ...)
 	vsnprintf(str, 4096, format, arglist);
 	va_end(arglist);
 
-#ifdef HAVE_SDL
+#if defined (HAVE_SDL) || defined (SRB2_PS5)
 	CONS_Alert(CONS_ERROR, "%s", str);
 #endif
 #ifdef DEBUG_TO_FILE

@@ -27,6 +27,11 @@
 #pragma warning(default : 4214 4244)
 #endif
 
+#elif defined (SRB2_PS5)
+// PlayStation 5: OpenGL is ps5-opengl, which ships Mesa's headers and no
+// GLU. Every entry point is looked up through GetGLFunc, as on SDL builds.
+#include <GL/gl.h>
+#include <GL/glext.h>
 #else
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -57,7 +62,7 @@ extern "C" {
 
 // todo: find some way of getting SDL to log to ogllog.txt, without
 // interfering with r_opengl.dll
-#ifdef HAVE_SDL
+#if defined (HAVE_SDL) || defined (SRB2_PS5)
 #undef DEBUG_TO_FILE
 #endif
 //#if defined(HAVE_SDL) && !defined(_DEBUG)

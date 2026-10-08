@@ -31,7 +31,13 @@
 #include "d_netcmd.h" // kill
 #include "doomstat.h" // kill
 #include "s_sound.h"  // kill
+#ifdef SRB2_PS5
+// The PlayStation 5 presents through EGL; ps5/ogl_ps5.h declares the same
+// OglSdlFinishUpdate under its SDL name so that nothing below changes.
+#include "ps5/ogl_ps5.h"
+#else
 #include "sdl/ogl_sdl.h"
+#endif
 #include "st_stuff.h" // kill
 
 // Legacy FinishUpdate Draws

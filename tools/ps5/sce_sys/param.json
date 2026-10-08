@@ -1,0 +1,47 @@
+{
+  "ageLevel": {
+    "default": 0
+  },
+  "amm": {
+    "multimapVaRangeInGib": 512,
+    "pagetableMemorySizeInMib": 256,
+    "vaRangeInGib": 512
+  },
+  "applicationCategoryType": 0,
+  "applicationDrmType": "free",
+  "attribute": 0,
+  "attribute2": 0,
+  "attribute3": 524352,
+  "conceptId": "99620",
+  "contentBadgeType": 1,
+  "contentId": "UP9000-PPSA99620_00-RINGRACERS000000",
+  "contentVersion": "02.050.000",
+  "downloadDataSize": 1024,
+  "gameIntent": {
+    "permittedIntents": [
+      {
+        "intentType": "launchActivity"
+      }
+    ]
+  },
+  "kernel": {
+    "cpuPageTableSize": 268435456,
+    "gpuPageTableSize": 268435456
+  },
+  "localizedParameters": {
+    "defaultLanguage": "en-US",
+    "en-US": {
+      "titleName": "Dr. Robotnik's Ring Racers"
+    }
+  },
+  "masterVersion": "01.00",
+  "pubtools": {
+    "creationDate": "2026-10-08 00:00:00",
+    "loudnessSnd0": "-28.00",
+    "toolVersion": "2.00"
+  },
+  "requiredSystemSoftwareVersion": "0x0000000000000000",
+  "sdkVersion": "0x0000000000000000",
+  "titleId": "PPSA99620",
+  "versionFileUri": ""
+}
