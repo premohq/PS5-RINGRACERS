@@ -1,0 +1,66 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Jaime "Lactozilla" Passos.
+// Copyright (C) 2020 by Sonic Team Junior.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  r_patch.h
+/// \brief Patch generation.
+
+#ifndef R_PATCH_H
+#define R_PATCH_H
+
+#include "r_defs.h"
+#include "r_picformats.h"
+#include "doomdef.h"
+#include "d_player.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Patch functions
+patch_t *Patch_Create(softwarepatch_t *source, size_t srcsize, void *dest);
+void Patch_Free(patch_t *patch);
+dboolean Patch_WasFreedThisFrame(void);
+void Patch_ResetFreedThisFrame(void);
+
+#define Patch_FreeTag(tagnum) Patch_FreeTags(tagnum, tagnum)
+void Patch_FreeTags(int32_t lowtag, int32_t hightag);
+
+void Patch_GenerateFlat(patch_t *patch, pictureflags_t flags);
+
+#ifdef HWRENDER
+void *Patch_AllocateHardwarePatch(patch_t *patch);
+void *Patch_CreateGL(patch_t *patch);
+#endif
+
+#ifdef ROTSPRITE
+void Patch_Rotate(patch_t *patch, int32_t angle, int32_t xpivot, int32_t ypivot, dboolean flip);
+patch_t *Patch_GetRotated(patch_t *patch, int32_t angle, dboolean flip);
+patch_t *Patch_GetRotatedSprite(
+	spriteframe_t *sprite,
+	size_t frame, size_t spriteangle,
+	dboolean flip, dboolean adjustfeet,
+	void *info, int32_t rotationangle);
+
+int32_t R_GetRollAngle(angle_t rollangle);
+angle_t R_GetPitchRollAngle(mobj_t *mobj, player_t *viewPlayer);
+angle_t R_ModelRotationAngle(mobj_t *mobj, player_t *viewPlayer);
+angle_t R_SpriteRotationAngle(mobj_t *mobj, player_t *viewPlayer);
+vector2_t* R_RotateSpriteOffsetsByPitchRoll(
+	mobj_t* mobj,
+	dboolean vflip,
+	dboolean hflip,
+	vector2_t* out);
+#endif
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // R_PATCH_H

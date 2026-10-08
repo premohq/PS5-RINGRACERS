@@ -1,0 +1,144 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2022 by Sonic Team Junior.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  lua_hudlib_drawlist.h
+/// \brief a data structure for managing cached drawlists for the Lua hud lib
+
+// The idea behinds this module is to cache drawcall information into an ordered
+// list to repeat the same draw operations in later frames. It's used to ensure
+// that the HUD hooks from Lua are called at precisely 35hz to avoid problems
+// with variable framerates in existing Lua addons.
+
+#ifndef LUA_HUDLIB_DRAWLIST_H
+#define LUA_HUDLIB_DRAWLIST_H
+
+#include "doomtype.h"
+#include "r_defs.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Create a new drawlist. Returns a handle to it.
+huddrawlist_h LUA_HUD_CreateDrawList(void);
+// Clears the draw list.
+void LUA_HUD_ClearDrawList(huddrawlist_h list);
+// Destroys the drawlist, invalidating the given handle
+void LUA_HUD_DestroyDrawList(huddrawlist_h list);
+dboolean LUA_HUD_IsDrawListValid(huddrawlist_h list);
+
+void LUA_HUD_AddDraw(
+	huddrawlist_h list,
+	int32_t x,
+	int32_t y,
+	patch_t *patch,
+	int32_t flags,
+	uint8_t *colormap
+);
+void LUA_HUD_AddDrawScaled(
+	huddrawlist_h list,
+	fixed_t x,
+	fixed_t y,
+	fixed_t scale,
+	patch_t *patch,
+	int32_t flags,
+	uint8_t *colormap
+);
+void LUA_HUD_AddDrawStretched(
+	huddrawlist_h list,
+	fixed_t x,
+	fixed_t y,
+	fixed_t hscale,
+	fixed_t vscale,
+	patch_t *patch,
+	int32_t flags,
+	uint8_t *colormap
+);
+void LUA_HUD_AddDrawNum(
+	huddrawlist_h list,
+	int32_t x,
+	int32_t y,
+	int32_t num,
+	int32_t flags
+);
+void LUA_HUD_AddDrawPaddedNum(
+	huddrawlist_h list,
+	int32_t x,
+	int32_t y,
+	int32_t num,
+	int32_t digits,
+	int32_t flags
+);
+void LUA_HUD_AddDrawPingNum(
+	huddrawlist_h list,
+	int32_t x,
+	int32_t y,
+	int32_t flags,
+	int32_t num,
+	uint8_t *colormap
+);
+void LUA_HUD_AddDrawFill(
+	huddrawlist_h list,
+	int32_t x,
+	int32_t y,
+	int32_t w,
+	int32_t h,
+	int32_t c
+);
+void LUA_HUD_AddDrawString(
+	huddrawlist_h list,
+	fixed_t x,
+	fixed_t y,
+	const char *str,
+	int32_t flags,
+	int32_t align
+);
+void LUA_HUD_AddFadeScreen(
+	huddrawlist_h list,
+	uint16_t color,
+	uint8_t strength
+);
+void LUA_HUD_AddDrawTitleCardString(
+	huddrawlist_h list,
+	int32_t x,
+	int32_t y,
+	int32_t flags,
+	const char *str,
+	dboolean bossmode,
+	int32_t timer,
+	int32_t threshold,
+	dboolean p4
+);
+void LUA_HUD_AddDrawKartString(
+	huddrawlist_h list,
+	fixed_t x,
+	fixed_t y,
+	const char *str,
+	int32_t flags
+);
+void LUA_HUD_AddSetClipRect(
+	huddrawlist_h list,
+	fixed_t x,
+	fixed_t y,
+	fixed_t w,
+	fixed_t h,
+	int32_t flags
+);
+void LUA_HUD_AddClearClipRect(
+	huddrawlist_h list
+);
+
+// Draws the given draw list
+void LUA_HUD_DrawList(huddrawlist_h list);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif 
+
+#endif // LUA_HUDLIB_DRAWLIST_H

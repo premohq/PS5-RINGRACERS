@@ -1,0 +1,73 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Sonic Team Junior.
+// Copyright (C) 2000 by DooM Legacy Team.
+// Copyright (C) 1996 by id Software, Inc.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  p_tick.h
+/// \brief Thinkers, Tickers
+
+#ifndef P_TICK_H
+#define P_TICK_H
+
+#include "doomdef.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern tic_t leveltime;
+extern dboolean thinkersCompleted;
+
+dboolean P_LevelIsFrozen(void);
+dboolean P_FreezeCheat(void);
+void P_SetFreezeCheat(dboolean value);
+void P_SetFreezeLevel(dboolean value);
+dboolean P_MobjIsFrozen(mobj_t *mobj);
+
+// Called by G_Ticker. Carries out all thinking of enemies and players.
+void Command_Numthinkers_f(void);
+void Command_CountMobjs_f(void);
+
+void P_RunChaseCameras(void);
+void P_Ticker(dboolean run);
+void P_PreTicker(int32_t frames);
+void P_DoTeamscrambling(void);
+void P_RemoveThinkerDelayed(thinker_t *thinker); //killed
+
+extern uint32_t thinker_era;
+
+mobj_t *P_SetTarget2(mobj_t **mo, mobj_t *target
+#ifdef PARANOIA
+		, const char *source_file, int source_line
+#endif
+);
+
+#ifdef PARANOIA
+#define P_SetTarget(...) P_SetTarget2(__VA_ARGS__, __FILE__, __LINE__)
+#else
+#define P_SetTarget P_SetTarget2
+#endif
+
+// Negate the value for tics
+int32_t P_AltFlip(int32_t value, tic_t tics);
+#define P_RandomFlip(value) P_AltFlip(value, 1)
+
+// Multiply value back and forth between -(tics) and +(tics).
+// Example output P_ModulateFlip(2, 2):
+// Tic:  0   1   2   3   4   5   6   7   8
+// Val: -4  -2   0   2   4   2   0  -2  -4
+// A half cycle (one direction) takes 2 * tics.
+// A full cycle takes 4 * tics.
+int32_t P_LerpFlip(int32_t value, tic_t tics);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif

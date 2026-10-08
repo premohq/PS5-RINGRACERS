@@ -1,0 +1,399 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Sonic Team Junior.
+// Copyright (C) 2006 by James Haley.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  p_polyobj.h
+/// \brief Movable segs like in Hexen, but more flexible
+///        due to application of dynamic binary space partitioning theory.
+
+#ifndef POLYOBJ_H
+#define POLYOBJ_H
+
+#include "m_dllist.h"
+#include "p_mobj.h"
+#include "r_defs.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+//
+// Defines
+//
+
+// haleyjd: use zdoom-compatible doomednums
+
+#define POLYOBJ_ANCHOR_DOOMEDNUM     760
+#define POLYOBJ_SPAWN_DOOMEDNUM      761
+
+#define POLYOBJ_START_LINE    20
+
+typedef int32_t polyobjflags_e;
+#define POF_CLIPLINES         (0x1)       ///< Test against lines for collision
+#define POF_CLIPPLANES        (0x2)       ///< Test against tops and bottoms for collision
+#define POF_SOLID             (0x3)       ///< Clips things.
+#define POF_TESTHEIGHT        (0x4)       ///< Test line collision with heights
+#define POF_RENDERSIDES       (0x8)       ///< Renders the sides.
+#define POF_RENDERTOP         (0x10)      ///< Renders the top.
+#define POF_RENDERBOTTOM      (0x20)      ///< Renders the bottom.
+#define POF_RENDERPLANES      (0x30)      ///< Renders top and bottom.
+#define POF_RENDERALL         (0x38)      ///< Renders everything.
+#define POF_INVERT            (0x40)      ///< Inverts collision (like a cage).
+#define POF_INVERTPLANES      (0x80)      ///< Render inside planes.
+#define POF_INVERTPLANESONLY  (0x100)     ///< Only render inside planes.
+#define POF_PUSHABLESTOP      (0x200)     ///< Pushables will stop movement.
+#define POF_LDEXEC            (0x400)     ///< This PO triggers a linedef executor.
+#define POF_ONESIDE           (0x800)     ///< Only use the first side of the linedef.
+#define POF_NOSPECIALS        (0x1000)    ///< Don't apply sector specials.
+#define POF_SPLAT             (0x2000)    ///< Use splat flat renderer (treat cyan pixels as invisible).
+
+typedef int32_t textmappolyobjectflags_t;
+#define TMPF_NOINSIDES       (1)
+#define TMPF_INTANGIBLE      (1<<1)
+#define TMPF_PUSHABLESTOP    (1<<2)
+#define TMPF_INVISIBLEPLANES (1<<3)
+#define TMPF_EXECUTOR        (1<<4)
+#define TMPF_CRUSH           (1<<5)
+#define TMPF_SPLAT           (1<<6)
+// #define TMPF_DONTCLIPPLANES  (1<<7)
+
+//
+// Polyobject Structure
+//
+
+struct polyobj_t
+{
+	mdllistitem_t link; // for subsector links; must be first
+
+	int32_t id;    // numeric id
+	int32_t first; // for hashing: index of first polyobject in this hash chain
+	int32_t next;  // for hashing: next polyobject in this hash chain
+
+	int32_t parent; // numeric id of parent polyobject
+
+	size_t segCount;        // number of segs in polyobject
+	size_t numSegsAlloc;    // number of segs allocated
+	seg_t **segs; // the segs, a reallocating array.
+
+	size_t numVertices;            // number of vertices (generally == segCount)
+	size_t numVerticesAlloc;       // number of vertices allocated
+	vertex_t *origVerts; // original positions relative to spawn spot
+	vertex_t *tmpVerts;  // temporary vertex backups for rotation
+	vertex_t **vertices; // vertices this polyobject must move
+
+	size_t numLines;          // number of linedefs (generally <= segCount)
+	size_t numLinesAlloc;     // number of linedefs allocated
+	line_t **lines; // linedefs this polyobject must move
+
+	degenmobj_t spawnSpot; // location of spawn spot
+	vertex_t    centerPt;  // center point
+	fixed_t zdist;         // viewz distance for sorting
+	angle_t angle;         // for rotation
+	uint8_t attached;         // if true, is attached to a subsector
+
+	fixed_t blockbox[4]; // bounding box for clipping
+	uint8_t linked;         // is linked to blockmap
+	size_t validcount;   // for clipping: prevents multiple checks
+	int32_t damage;        // damage to inflict on stuck things
+	fixed_t thrust;      // amount of thrust to put on blocking objects
+	int32_t flags;         // Flags for this polyobject
+
+	thinker_t *thinker;  // pointer to a thinker affecting this polyobj
+
+	uint8_t isBad;         // a bad polyobject: should not be rendered/manipulated
+	int32_t translucency; // index to translucency tables
+	int16_t triggertag;   // Tag of linedef executor to trigger on touch
+
+	visplane_t *visplane; // polyobject's visplane, for ease of putting into the list later
+
+	// these are saved for netgames, so do not let Lua touch these!
+	int32_t spawnflags; // Flags the polyobject originally spawned with
+	int32_t spawntrans; // Translucency the polyobject originally spawned with
+};
+
+//
+// Polyobject Blockmap Link Structure
+//
+
+struct polymaplink_t
+{
+	mdllistitem_t link; // for blockmap links
+	polyobj_t *po;      // pointer to polyobject
+};
+
+//
+// Polyobject Special Thinkers
+//
+
+struct polyrotate_t
+{
+	thinker_t thinker; // must be first
+
+	int32_t polyObjNum;    // numeric id of polyobject (avoid C pointers here)
+	int32_t speed;         // speed of movement per frame
+	int32_t distance;      // distance to move
+	uint8_t turnobjs;      // turn objects? PTF_ flags
+};
+
+struct polymove_t
+{
+	thinker_t thinker;  // must be first
+
+	int32_t polyObjNum;   // numeric id of polyobject
+	int32_t speed;        // resultant velocity
+	fixed_t momx;       // x component of speed along angle
+	fixed_t momy;       // y component of speed along angle
+	int32_t distance;     // total distance to move
+	uint32_t angle;       // angle along which to move
+};
+
+// PolyObject waypoint movement return behavior
+typedef enum
+{
+	PWR_STOP,     // Stop after reaching last waypoint
+	PWR_WRAP,     // Wrap back to first waypoint
+	PWR_COMEBACK, // Repeat sequence in reverse
+} polywaypointreturn_e;
+
+struct polywaypoint_t
+{
+	thinker_t thinker; // must be first
+
+	int32_t polyObjNum;      // numeric id of polyobject
+	int32_t speed;           // resultant velocity
+	int32_t sequence;        // waypoint sequence #
+	int32_t pointnum;        // waypoint #
+	int32_t direction;       // 1 for normal, -1 for backwards
+	uint8_t returnbehavior;  // behavior after reaching the last waypoint
+	uint8_t continuous;      // continuously move - used with PWR_WRAP or PWR_COMEBACK
+	uint8_t stophere;        // Will stop after it reaches the next waypoint
+};
+
+struct polyslidedoor_t
+{
+	thinker_t thinker;      // must be first
+
+	int32_t polyObjNum;         // numeric id of affected polyobject
+	int32_t delay;              // delay time
+	int32_t delayCount;         // delay counter
+	int32_t initSpeed;          // initial speed
+	int32_t speed;              // speed of motion
+	int32_t initDistance;       // initial distance to travel
+	int32_t distance;           // current distance to travel
+	uint32_t initAngle;         // intial angle
+	uint32_t angle;             // angle of motion
+	uint32_t revAngle;          // reversed angle to avoid roundoff error
+	fixed_t momx;             // x component of speed along angle
+	fixed_t momy;             // y component of speed along angle
+	uint8_t closing;             // if true, is closing
+};
+
+struct polyswingdoor_t
+{
+	thinker_t thinker; // must be first
+
+	int32_t polyObjNum;    // numeric id of affected polyobject
+	int32_t delay;         // delay time
+	int32_t delayCount;    // delay counter
+	int32_t initSpeed;     // initial speed
+	int32_t speed;         // speed of rotation
+	int32_t initDistance;  // initial distance to travel
+	int32_t distance;      // current distance to travel
+	uint8_t closing;        // if true, is closing
+};
+
+struct polydisplace_t
+{
+	thinker_t thinker; // must be first
+
+	int32_t polyObjNum;
+	sector_t *controlSector;
+	fixed_t dx;
+	fixed_t dy;
+	fixed_t oldHeights;
+};
+
+struct polyrotdisplace_t
+{
+	thinker_t thinker; // must be first
+
+	int32_t polyObjNum;
+	sector_t *controlSector;
+	fixed_t rotscale;
+	uint8_t turnobjs;
+	fixed_t oldHeights;
+};
+
+struct polyfade_t
+{
+	thinker_t thinker; // must be first
+
+	int32_t polyObjNum;
+	int32_t sourcevalue;
+	int32_t destvalue;
+	dboolean docollision;
+	dboolean doghostfade;
+	dboolean ticbased;
+	int32_t duration;
+	int32_t timer;
+};
+
+//
+// Line Activation Data Structures
+//
+
+typedef int32_t textmappolyrotate_t;
+#define TMPR_DONTROTATEOTHERS (1)
+#define TMPR_ROTATEPLAYERS    (1<<1)
+#define TMPR_CONTINUOUS       (1<<2)
+#define TMPR_OVERRIDE         (1<<3)
+
+typedef int32_t polyturnflags_e;
+#define PTF_PLAYERS (1)    // Turn players with movement
+#define PTF_OTHERS (1<<1) // Turn other mobjs with movement
+
+struct polyrotdata_t
+{
+	int32_t polyObjNum;   // numeric id of polyobject to affect
+	int32_t direction;    // direction of rotation
+	int32_t speed;        // angular speed
+	int32_t distance;     // distance to move
+	uint8_t flags;        // TMPR_ flags
+};
+
+struct polymovedata_t
+{
+	int32_t polyObjNum;   // numeric id of polyobject to affect
+	fixed_t distance;   // distance to move
+	fixed_t speed;      // linear speed
+	angle_t angle;      // angle of movement
+	uint8_t overRide;     // if true, will override any action on the object
+};
+
+typedef int32_t polywaypointflags_e;
+#define PWF_REVERSE (1)    // Move through waypoints in reverse order
+#define PWF_LOOP    (1<<1) // Loop movement (used with PWR_WRAP or PWR_COMEBACK)
+
+struct polywaypointdata_t
+{
+	int32_t polyObjNum;     // numeric id of polyobject to affect
+	int32_t sequence;       // waypoint sequence #
+	fixed_t speed;        // linear speed
+	uint8_t returnbehavior; // behavior after reaching the last waypoint
+	uint8_t flags;          // PWF_ flags
+};
+
+// polyobject door types
+typedef enum
+{
+	POLY_DOOR_SLIDE,
+	POLY_DOOR_SWING,
+} polydoor_e;
+
+struct polydoordata_t
+{
+	int32_t polyObjNum;     // numeric id of polyobject to affect
+	int32_t doorType;       // polyobj door type
+	int32_t speed;          // linear or angular speed
+	angle_t angle;        // for slide door only, angle of motion
+	int32_t distance;       // distance to move
+	int32_t delay;          // delay time after opening
+};
+
+struct polydisplacedata_t
+{
+	int32_t polyObjNum;
+	sector_t *controlSector;
+	fixed_t dx;
+	fixed_t dy;
+};
+
+struct polyrotdisplacedata_t
+{
+	int32_t polyObjNum;
+	sector_t *controlSector;
+	fixed_t rotscale;
+	uint8_t turnobjs;
+};
+
+struct polyflagdata_t
+{
+	int32_t polyObjNum;
+	int32_t speed;
+	uint32_t angle;
+	fixed_t momx;
+};
+
+typedef int32_t textmappolyfade_t;
+#define TMPF_RELATIVE        (1)
+#define TMPF_OVERRIDE        (1<<1)
+#define TMPF_TICBASED        (1<<2)
+#define TMPF_IGNORECOLLISION (1<<3)
+#define TMPF_GHOSTFADE       (1<<4)
+
+struct polyfadedata_t
+{
+	int32_t polyObjNum;
+	int32_t destvalue;
+	dboolean docollision;
+	dboolean doghostfade;
+	dboolean ticbased;
+	int32_t speed;
+};
+
+//
+// Functions
+//
+
+dboolean Polyobj_moveXY(polyobj_t *po, fixed_t x, fixed_t y, dboolean checkmobjs);
+dboolean Polyobj_rotate(polyobj_t *po, angle_t delta, dboolean turnplayers, dboolean turnothers, dboolean checkmobjs);
+polyobj_t *Polyobj_GetForNum(int32_t id);
+void Polyobj_InitLevel(void);
+void Polyobj_MoveOnLoad(polyobj_t *po, angle_t angle, fixed_t x, fixed_t y);
+dboolean P_PointInsidePolyobj(polyobj_t *po, fixed_t x, fixed_t y);
+dboolean P_MobjTouchingPolyobj(polyobj_t *po, mobj_t *mo);
+dboolean P_MobjInsidePolyobj(polyobj_t *po, mobj_t *mo);
+dboolean P_BBoxInsidePolyobj(polyobj_t *po, fixed_t *bbox);
+
+// thinkers (needed in p_saveg.c)
+void T_PolyObjRotate(polyrotate_t *);
+void T_PolyObjMove  (polymove_t *);
+void T_PolyObjWaypoint (polywaypoint_t *);
+void T_PolyDoorSlide(polyslidedoor_t *);
+void T_PolyDoorSwing(polyswingdoor_t *);
+void T_PolyObjDisplace  (polydisplace_t *);
+void T_PolyObjRotDisplace  (polyrotdisplace_t *);
+void T_PolyObjFlag  (polymove_t *);
+void T_PolyObjFade  (polyfade_t *);
+
+dboolean EV_DoPolyDoor(polydoordata_t *);
+dboolean EV_DoPolyObjMove(polymovedata_t *);
+dboolean EV_DoPolyObjWaypoint(polywaypointdata_t *);
+dboolean EV_DoPolyObjRotate(polyrotdata_t *);
+dboolean EV_DoPolyObjDisplace(polydisplacedata_t *);
+dboolean EV_DoPolyObjRotDisplace(polyrotdisplacedata_t *);
+dboolean EV_DoPolyObjFlag(polyflagdata_t *);
+dboolean EV_DoPolyObjFade(polyfadedata_t *);
+
+
+//
+// External Variables
+//
+
+extern polyobj_t *PolyObjects;
+extern int32_t numPolyObjects;
+extern polymaplink_t **polyblocklinks; // polyobject blockmap
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif
+
+// EOF

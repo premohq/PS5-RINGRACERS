@@ -1,0 +1,138 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Nev3r.
+// Copyright (C) 2020 by Sonic Team Junior.
+// Copyright (C) 2000 by DooM Legacy Team.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  taglist.h
+/// \brief Tag iteration and reading functions and macros' declarations.
+
+#ifndef R_TAGLIST_H
+#define R_TAGLIST_H
+
+#include "doomtype.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef int16_t mtag_t;
+#define MAXTAGS UINT16_MAX
+#define MTAG_GLOBAL -1
+
+/// Multitag list. Each taggable element will have its own taglist.
+struct taglist_t
+{
+	mtag_t* tags;
+	uint16_t count;
+};
+
+void Tag_Add (taglist_t* list, const mtag_t tag);
+void Tag_Remove (taglist_t* list, const mtag_t tag);
+void Tag_FSet (taglist_t* list, const mtag_t tag);
+mtag_t Tag_FGet (const taglist_t* list);
+dboolean Tag_Find (const taglist_t* list, const mtag_t tag);
+dboolean Tag_Share (const taglist_t* list1, const taglist_t* list2);
+dboolean Tag_Compare (const taglist_t* list1, const taglist_t* list2);
+
+void Tag_SectorAdd (const size_t id, const mtag_t tag);
+void Tag_SectorRemove (const size_t id, const mtag_t tag);
+void Tag_SectorFSet (const size_t id, const mtag_t tag);
+
+/// Taggroup list. It is essentially just an element id list.
+struct taggroup_t
+{
+	size_t *elements;
+	size_t count;
+	size_t capacity;
+};
+
+extern bitarray_t tags_available[];
+
+extern mtag_t Tag_NextUnused(mtag_t start);
+
+extern size_t num_tags;
+
+extern taggroup_t* tags_sectors[];
+extern taggroup_t* tags_lines[];
+
+void Taggroup_Add (taggroup_t *garray[], const mtag_t tag, size_t id);
+void Taggroup_Remove (taggroup_t *garray[], const mtag_t tag, size_t id);
+size_t Taggroup_Find (const taggroup_t *group, const size_t id);
+size_t Taggroup_Count (const taggroup_t *group);
+
+int32_t Taggroup_Iterate
+(		taggroup_t *garray[],
+		const size_t max_elements,
+		const mtag_t tag,
+		const size_t p);
+
+void Taglist_InitGlobalTables(void);
+
+int32_t Tag_Iterate_Sectors (const mtag_t tag, const size_t p);
+int32_t Tag_Iterate_Lines (const mtag_t tag, const size_t p);
+int32_t Tag_Iterate_Things (const mtag_t tag, const size_t p);
+
+int32_t Tag_FindLineSpecial(const int16_t special, const mtag_t tag);
+int32_t P_FindSpecialLineFromTag(int16_t special, int16_t tag, int32_t start);
+
+#define ICNAME2(id) ICNT_##id
+#define ICNAME(id) ICNAME2(id)
+#define TAG_ITER(fn, tag, return_varname) for(size_t ICNAME(__LINE__) = 0; (return_varname = fn(tag, ICNAME(__LINE__))) >= 0; ICNAME(__LINE__)++)
+
+// Use these macros as wrappers for a taglist iteration.
+#define TAG_ITER_SECTORS(tag, return_varname) TAG_ITER(Tag_Iterate_Sectors, tag, return_varname)
+#define TAG_ITER_LINES(tag, return_varname)   TAG_ITER(Tag_Iterate_Lines, tag, return_varname)
+#define TAG_ITER_THINGS(tag, return_varname)  TAG_ITER(Tag_Iterate_Things, tag, return_varname)
+
+/* ITERATION MACROS
+'tag':
+Pretty much the elements' tag to iterate through.
+
+'return_varname':
+Target variable's name to return the iteration results to.
+
+
+EXAMPLE:
+{
+	size_t li;
+	int32_t tag1 = 4;
+
+	...
+
+	TAG_ITER_LINES(tag1, li)
+	{
+		line_t *line = lines + li;
+
+		...
+
+		if (something)
+		{
+			size_t sec;
+			mtag_t tag2 = 8;
+
+			// Nested iteration.
+			TAG_ITER_SECTORS(tag2, sec)
+			{
+				sector_t *sector = sectors + sec;
+
+				...
+			}
+		}
+	}
+}
+
+Notes:
+If no elements are found for a given tag, the loop inside won't be executed.
+*/
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif //R_TAGLIST_H

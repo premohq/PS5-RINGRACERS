@@ -1,0 +1,95 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  k_race.h
+/// \brief Race Mode specific code.
+
+#ifndef K_RACE_H
+#define K_RACE_H
+
+#include "r_defs.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern line_t *finishBeamLine;
+
+#define FINISHLINEBEAM_SPACING (48*mapobjectscale)
+
+/*--------------------------------------------------
+	void K_ClearFinishBeamLine(void);
+
+		Clears variables for finishBeamLine.
+		Separate from K_FreeFinishBeamLine since this
+		needs called when PU_LEVEL is freed.
+
+	Input Arguments:-
+		None
+
+	Return:-
+		None
+--------------------------------------------------*/
+
+void K_ClearFinishBeamLine(void);
+
+
+/*--------------------------------------------------
+	dboolean K_GenerateFinishBeamLine(void);
+
+		Finds pre-placed "beam points" to create a finish line out of,
+		or tries to automatically create it from a finish linedef in the map.
+		The result is stored in the "finishBeamLine" variable.
+
+	Input Arguments:-
+		None
+
+	Return:-
+		True if successful, otherwise false.
+--------------------------------------------------*/
+
+dboolean K_GenerateFinishBeamLine(void);
+
+
+/*--------------------------------------------------
+	void K_RunFinishLineBeam(void);
+
+		Updates the finish line beam effect.
+
+	Input Arguments:-
+		None
+
+	Return:-
+		None
+--------------------------------------------------*/
+
+void K_RunFinishLineBeam(void);
+
+
+/*--------------------------------------------------
+	uint8_t K_RaceLapCount(int16_t mapNum);
+
+		Returns the effective final lap count of the race.
+
+	Input Arguments:-
+		mapNum - The level to count laps for, 0-indexed.
+
+	Return:-
+		The lap count to finish.
+--------------------------------------------------*/
+
+uint8_t K_RaceLapCount(int16_t mapNum);
+
+void K_SpawnFinishEXP(player_t *player, uint16_t exp);
+
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif

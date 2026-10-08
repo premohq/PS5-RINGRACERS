@@ -1,0 +1,735 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Sonic Team Junior.
+// Copyright (C) 2000 by DooM Legacy Team.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  d_clisrv.h
+/// \brief high level networking stuff
+
+#ifndef D_CLISRV_H
+#define D_CLISRV_H
+
+#include <time.h>
+
+#include "d_ticcmd.h"
+#include "d_net.h"
+#include "d_netcmd.h"
+#include "d_net.h"
+#include "tables.h"
+#include "d_player.h"
+#include "mserv.h"
+
+#include "k_pwrlv.h" // PWRLV_NUMTYPES
+#include "p_saveg.h" // NETSAVEGAMESIZE
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+The 'packet version' is used to distinguish packet formats.
+This version is independent of VERSION and SUBVERSION. Different
+applications may follow different packet versions.
+*/
+#define PACKETVERSION 0
+
+// Network play related stuff.
+// There is a data struct that stores network
+//  communication related stuff, and another
+//  one that defines the actual packets to
+//  be transmitted.
+
+#define HU_MAXMSGLEN 223
+
+#define MAXSERVERNAME 32
+#define MAXSERVERCONTACT 1024
+
+// Networking and tick handling related.
+#define BACKUPTICS 512 // more than enough for most timeouts....
+#define CLIENTBACKUPTICS 32
+#define MAXTEXTCMD 512
+
+// No. of tics your controls can be delayed by.
+
+// TODO: Instead of storing a ton of extra cmds for gentlemens' delay,
+// keep them in a linked-list, with timestamps to discard everything that's older than already sent.
+// That will support any amount of lag, and be less wasteful for clients who don't use it.
+// This just works as a quick implementation.
+#define MAXGENTLEMENDELAY TICRATE
+
+//
+// Packet structure
+//
+typedef enum
+{
+	PT_NOTHING,       // To send a nop through the network. ^_~
+	PT_SERVERCFG,     // Server config used in start game
+	                  // (must stay 1 for backwards compatibility).
+	                  // This is a positive response to a CLIENTJOIN request.
+	PT_CLIENTCMD,     // Ticcmd of the client.
+	PT_CLIENTMIS,     // Same as above with but saying resend from.
+	PT_CLIENT2CMD,    // 2 cmds in the packet for splitscreen.
+	PT_CLIENT2MIS,    // Same as above with but saying resend from
+	PT_NODEKEEPALIVE, // Same but without ticcmd and consistancy
+	PT_NODEKEEPALIVEMIS,
+	PT_SERVERTICS,    // All cmds for the tic.
+	PT_SERVERREFUSE,  // Server refuses joiner (reason inside).
+	PT_SERVERSHUTDOWN,
+	PT_CLIENTQUIT,    // Client closes the connection.
+
+	PT_ASKINFO,       // Anyone can ask info of the server.
+	PT_SERVERINFO,    // Send game & server info (gamespy).
+	PT_PLAYERINFO,    // Send information for players in game (gamespy).
+	PT_REQUESTFILE,   // Client requests a file transfer
+	PT_ASKINFOVIAMS,  // Packet from the MS requesting info be sent to new client.
+	                  // If this ID changes, update masterserver definition.
+
+	PT_WILLRESENDGAMESTATE, // Hey Client, I am about to resend you the gamestate!
+	PT_CANRECEIVEGAMESTATE, // Okay Server, I'm ready to receive it, you can go ahead.
+	PT_RECEIVEDGAMESTATE,   // Thank you Server, I am ready to play again!
+
+	PT_SENDINGLUAFILE, // Server telling a client Lua needs to open a file
+	PT_ASKLUAFILE,     // Client telling the server they don't have the file
+	PT_HASLUAFILE,     // Client telling the server they have the file
+
+	// Add non-PT_CANFAIL packet types here to avoid breaking MS compatibility.
+
+	// Kart-specific packets
+	PT_CLIENT3CMD,    // 3P
+	PT_CLIENT3MIS,
+	PT_CLIENT4CMD,    // 4P
+	PT_CLIENT4MIS,
+	PT_BASICKEEPALIVE,// Keep the network alive during wipes, as tics aren't advanced and NetUpdate isn't called
+
+	PT_CANFAIL,       // This is kind of a priority. Anything bigger than CANFAIL
+	                  // allows HSendPacket(*, true, *, *) to return false.
+	                  // In addition, this packet can't occupy all the available slots.
+
+	PT_FILEFRAGMENT = PT_CANFAIL, // A part of a file.
+	PT_FILEACK,
+	PT_FILERECEIVED,
+
+	PT_TEXTCMD,       // Extra text commands from the client.
+	PT_TEXTCMD2,      // Splitscreen text commands.
+	PT_TEXTCMD3,      // 3P
+	PT_TEXTCMD4,      // 4P
+	PT_CLIENTJOIN,    // Client wants to join; used in start game.
+	PT_NODETIMEOUT,   // Packet sent to self if the connection times out.
+
+	PT_TELLFILESNEEDED, // Client, to server: "what other files do I need starting from this number?"
+	PT_MOREFILESNEEDED, // Server, to client: "you need these (+ more on top of those)"
+
+	PT_LOGIN,         // Login attempt from the client.
+
+	PT_PING,          // Packet sent to tell clients the other client's latency to server.
+
+	PT_CLIENTKEY,		// "Here's my public key"
+	PT_SERVERCHALLENGE,		// "Prove it"
+
+	PT_CHALLENGEALL,	// Prove to the other clients you are who you say you are, sign this random bullshit!
+	PT_RESPONSEALL,		// OK, here is my signature on that random bullshit
+	PT_RESULTSALL,		// Here's what everyone responded to PT_CHALLENGEALL with, if this is wrong or you don't receive it disconnect
+
+	PT_SAY,				// "Hey server, please send this chat message to everyone via XD_SAY"
+
+	PT_REQMAPQUEUE,		// Client requesting a roundqueue operation
+
+	PT_VOICE,           // Voice packet for either side
+
+	NUMPACKETTYPE
+} packettype_t;
+
+typedef enum
+{
+	SIGN_OK,
+	SIGN_BADTIME, // Timestamp differs by too much, suspect reuse of an old challenge.
+	SIGN_BADIP // Asked to sign the wrong IP by an external host, suspect reuse of another server's challenge.
+} shouldsign_t;
+
+#ifdef PACKETDROP
+void Command_Drop(void);
+void Command_Droprate(void);
+#endif
+void Command_Numnodes(void);
+
+#if defined(_MSC_VER)
+#pragma pack(1)
+#endif
+
+// Client to server packet
+struct clientcmd_pak
+{
+	uint8_t client_tic;
+	uint8_t resendfrom;
+	int16_t consistancy;
+	uint8_t wantdelay;
+	ticcmd_t cmd;
+} ATTRPACK;
+
+// Splitscreen packet
+// WARNING: must have the same format of clientcmd_pak, for more easy use
+struct client2cmd_pak
+{
+	uint8_t client_tic;
+	uint8_t resendfrom;
+	int16_t consistancy;
+	uint8_t wantdelay;
+	ticcmd_t cmd, cmd2;
+} ATTRPACK;
+
+// 3P Splitscreen packet
+// WARNING: must have the same format of clientcmd_pak, for more easy use
+struct client3cmd_pak
+{
+	uint8_t client_tic;
+	uint8_t resendfrom;
+	int16_t consistancy;
+	uint8_t wantdelay;
+	ticcmd_t cmd, cmd2, cmd3;
+} ATTRPACK;
+
+// 4P Splitscreen packet
+// WARNING: must have the same format of clientcmd_pak, for more easy use
+struct client4cmd_pak
+{
+	uint8_t client_tic;
+	uint8_t resendfrom;
+	int16_t consistancy;
+	uint8_t wantdelay;
+	ticcmd_t cmd, cmd2, cmd3, cmd4;
+} ATTRPACK;
+
+#ifdef _MSC_VER
+#pragma warning(disable :  4200)
+#endif
+
+// Server to client packet
+// this packet is too large
+struct servertics_pak
+{
+	uint8_t starttic;
+	uint8_t numtics;
+	uint8_t numslots; // "Slots filled": Highest player number in use plus one.
+	ticcmd_t cmds[45]; // Normally [BACKUPTIC][MAXPLAYERS] but too large
+} ATTRPACK;
+
+struct serverconfig_pak
+{
+	uint8_t version; // Different versions don't work
+	uint8_t subversion; // Contains build version
+
+	// Server launch stuffs
+	uint8_t serverplayer;
+	uint8_t totalslotnum; // "Slots": highest player number in use plus one.
+
+	tic_t gametic;
+	uint8_t clientnode;
+	uint8_t gamestate;
+
+	uint8_t gametype;
+	uint8_t modifiedgame;
+	dboolean dedicated;
+
+	char server_context[8]; // Unique context id, generated at server startup.
+
+	// Discord info (always defined for net compatibility)
+	uint8_t maxplayer;
+	dboolean allownewplayer;
+	dboolean discordinvites;
+
+	char server_name[MAXSERVERNAME];
+	char server_contact[MAXSERVERCONTACT];
+} ATTRPACK;
+
+struct filetx_pak
+{
+	uint8_t fileid;
+	uint32_t filesize;
+	uint8_t iteration;
+	uint32_t position;
+	uint16_t size;
+	uint8_t data[]; // Size is variable using hardware_MAXPACKETLENGTH
+} ATTRPACK;
+
+struct fileacksegment_t
+{
+	uint32_t start;
+	uint32_t acks;
+} ATTRPACK;
+
+struct fileack_pak
+{
+	uint8_t fileid;
+	uint8_t iteration;
+	uint8_t numsegments;
+	fileacksegment_t segments[];
+} ATTRPACK;
+
+#ifdef _MSC_VER
+#pragma warning(default : 4200)
+#endif
+
+#define MAXAPPLICATION 16
+
+struct player_config_t
+{
+	char name[MAXPLAYERNAME+1];
+	uint16_t skin;
+	uint16_t color;
+	int16_t follower;
+	uint16_t follower_color;
+	uint8_t weapon_prefs;
+	uint8_t min_delay;
+	uint8_t key[PUBKEYLENGTH];
+	uint16_t pwr[PWRLV_NUMTYPES];
+} ATTRPACK;
+
+struct clientconfig_pak
+{
+	uint8_t _255;/* see serverinfo_pak */
+	uint8_t packetversion;
+	char application[MAXAPPLICATION];
+	uint8_t version; // Different versions don't work
+	uint8_t subversion; // Contains build version
+	uint8_t localplayers;	// number of splitscreen players
+	uint8_t mode;
+	char _names_outdated[MAXSPLITSCREENPLAYERS][MAXPLAYERNAME];
+	uint8_t availabilities[MAXAVAILABILITY];
+	uint8_t challengeResponse[MAXSPLITSCREENPLAYERS][SIGNATURELENGTH];
+	player_config_t player_configs[MAXSPLITSCREENPLAYERS];
+} ATTRPACK;
+
+#define SV_SPEEDMASK 0x03		// used to send kartspeed
+#define SV_DEDICATED 0x40		// server is dedicated
+#define SV_VOICEENABLED 0x80    // voice_mute is off/voice chat is enabled
+#define SV_LOTSOFADDONS 0x20	// flag used to ask for full file list in d_netfil
+
+#define MAXFILENEEDED 915
+#define MAX_MIRROR_LENGTH 256
+// This packet is too large
+struct serverinfo_pak
+{
+	/*
+	In the old packet, 'version' is the first field. Now that field is set
+	to 255 always, so older versions won't be confused with the new
+	versions or vice-versa.
+	*/
+	uint8_t _255;
+	uint8_t packetversion;
+	char  application[MAXAPPLICATION];
+	uint8_t version;
+	uint8_t subversion;
+	uint8_t commit[GIT_SHA_ABBREV];
+	uint8_t numberofplayer;
+	uint8_t maxplayer;
+	uint8_t refusereason; // 0: joinable, 1: joins disabled, 2: full
+	char gametypename[24];
+	uint8_t modifiedgame;
+	uint8_t cheatsenabled;
+	uint8_t kartvars; // Previously isdedicated, now appropriated for our own nefarious purposes
+	uint8_t fileneedednum;
+	tic_t time;
+	tic_t leveltime;
+	char servername[MAXSERVERNAME];
+	char maptitle[33];
+	unsigned char mapmd5[16];
+	uint8_t actnum;
+	uint8_t iszone;
+	char httpsource[MAX_MIRROR_LENGTH]; // HTTP URL to download from, always defined for compatibility
+	int16_t avgpwrlv; // Kart avg power level
+	uint8_t fileneeded[MAXFILENEEDED]; // is filled with writexxx (byteptr.h)
+} ATTRPACK;
+
+struct serverrefuse_pak
+{
+	char reason[255];
+} ATTRPACK;
+
+struct askinfo_pak
+{
+	uint8_t version;
+	tic_t time; // used for ping evaluation
+} ATTRPACK;
+
+struct msaskinfo_pak
+{
+	char clientaddr[22];
+	tic_t time; // used for ping evaluation
+} ATTRPACK;
+
+// Shorter player information for external use.
+struct plrinfo
+{
+	uint8_t num;
+	char name[MAXPLAYERNAME+1];
+	uint8_t address[4]; // sending another string would run us up against MAXPACKETLENGTH
+	uint8_t team;
+	uint8_t deprecated_skin;
+	uint8_t data; // Color is first four bits, hasflag, isit and issuper have one bit each, the last is unused.
+	uint32_t score;
+	uint16_t timeinserver; // In seconds.
+} ATTRPACK;
+
+struct filesneededconfig_pak
+{
+	int32_t first;
+	uint8_t num;
+	uint8_t more;
+	uint8_t files[MAXFILENEEDED]; // is filled with writexxx (byteptr.h)
+} ATTRPACK;
+
+struct clientkey_pak
+{
+	uint8_t key[MAXSPLITSCREENPLAYERS][PUBKEYLENGTH];
+} ATTRPACK;
+
+struct serverchallenge_pak
+{
+	uint8_t secret[CHALLENGELENGTH];
+} ATTRPACK;
+
+struct challengeall_pak
+{
+	uint8_t secret[CHALLENGELENGTH];
+} ATTRPACK;
+
+struct responseall_pak
+{
+	uint8_t signature[MAXSPLITSCREENPLAYERS][SIGNATURELENGTH];
+} ATTRPACK;
+
+struct resultsall_pak
+{
+	uint8_t signature[MAXPLAYERS][SIGNATURELENGTH];
+} ATTRPACK;
+
+struct say_pak
+{
+	char message[HU_MAXMSGLEN + 1];
+	uint8_t target;
+	uint8_t flags;
+	uint8_t source;
+} ATTRPACK;
+
+struct reqmapqueue_pak
+{
+	uint16_t newmapnum;
+	uint16_t newgametype;
+	uint8_t flags;
+	uint8_t source;
+} ATTRPACK;
+
+struct netinfo_pak
+{
+	uint32_t pingtable[MAXPLAYERS+1];
+	uint32_t packetloss[MAXPLAYERS+1];
+	uint32_t delay[MAXPLAYERS+1];
+} ATTRPACK;
+
+// Sent by both sides. Contains Opus-encoded voice packet
+// flags bitset map (left to right, low to high)
+// | PPPPPTRR | -- P = Player num, T = Terminal, R = Reserved (0)
+// Data following voice header is a single Opus frame
+struct voice_pak
+{
+	uint64_t frame;
+	uint8_t flags;
+} ATTRPACK;
+
+#define VOICE_PAK_FLAGS_PLAYERNUM_BITS 0x1F
+#define VOICE_PAK_FLAGS_TERMINAL_BIT 0x20
+#define VOICE_PAK_FLAGS_RESERVED0_BIT 0x40
+#define VOICE_PAK_FLAGS_RESERVED1_BIT 0x80
+#define VOICE_PAK_FLAGS_RESERVED_BITS (VOICE_PAK_FLAGS_RESERVED0_BIT | VOICE_PAK_FLAGS_RESERVED1_BIT)
+
+//
+// Network packet data
+//
+struct doomdata_t
+{
+	uint32_t checksum;
+	uint8_t ack; // If not zero the node asks for acknowledgement, the receiver must resend the ack
+	uint8_t ackreturn; // The return of the ack number
+
+	uint8_t packettype;
+	uint8_t reserved; // Padding
+	union
+	{
+		clientcmd_pak clientpak;            //         147 bytes
+		client2cmd_pak client2pak;          //         206 bytes
+		client3cmd_pak client3pak;          //         264 bytes(?)
+		client4cmd_pak client4pak;          //         324 bytes(?)
+		servertics_pak serverpak;           //      132495 bytes (more around 360, no?)
+		serverconfig_pak servercfg;         //         777 bytes
+		uint8_t textcmd[MAXTEXTCMD+2];        //       66049 bytes (wut??? 64k??? More like 258 bytes...)
+		char filetxpak[sizeof (filetx_pak)];//         139 bytes
+		char fileack[sizeof (fileack_pak)];
+		uint8_t filereceived;
+		clientconfig_pak clientcfg;         //         650 bytes
+		uint8_t md5sum[16];
+		serverinfo_pak serverinfo;          //        1024 bytes
+		serverrefuse_pak serverrefuse;      //       65025 bytes (somehow I feel like those values are garbage...)
+		askinfo_pak askinfo;                //          61 bytes
+		msaskinfo_pak msaskinfo;            //          22 bytes
+		plrinfo playerinfo[MSCOMPAT_MAXPLAYERS];//         576 bytes(?)
+		int32_t filesneedednum;               //           4 bytes
+		filesneededconfig_pak filesneededcfg; //       ??? bytes
+		netinfo_pak netinfo;					// Don't believe their lies
+		clientkey_pak clientkey;				// 32 bytes
+		serverchallenge_pak serverchallenge;	// 256 bytes
+		challengeall_pak challengeall;			// 256 bytes
+		responseall_pak responseall;			// 256 bytes
+		resultsall_pak resultsall;				// 1024 bytes. Also, you really shouldn't trust anything here.
+		say_pak say;							// I don't care anymore.
+		reqmapqueue_pak reqmapqueue;			// Formerly XD_REQMAPQUEUE
+		voice_pak voice;                        // Unreliable voice data, variable length
+	} u; // This is needed to pack diff packet types data together
+} ATTRPACK;
+
+#if defined(_MSC_VER)
+#pragma pack()
+#endif
+
+#define MAXSERVERLIST (MAXNETNODES-1)
+#define GTCALC_RACE 0
+#define GTCALC_BATTLE 1
+#define GTCALC_CUSTOM 2
+struct serverelem_t
+{
+	int8_t node;
+	serverinfo_pak info;
+	uint8_t cachedgtcalc;
+};
+
+extern serverelem_t serverlist[MAXSERVERLIST];
+extern uint32_t serverlistcount, serverlistultimatecount;
+extern dboolean serverlistmode;
+extern int32_t mapchangepending;
+
+// Points inside doomcom
+extern doomdata_t *netbuffer;
+extern consvar_t cv_stunserver;
+extern consvar_t cv_httpsource;
+extern consvar_t cv_kicktime;
+
+extern consvar_t cv_showjoinaddress;
+extern consvar_t cv_playbackspeed;
+
+#define BASEPACKETSIZE      offsetof(doomdata_t, u)
+#define FILETXHEADER        offsetof(filetx_pak, data)
+#define BASESERVERTICSSIZE  offsetof(doomdata_t, u.serverpak.cmds[0])
+
+typedef enum
+{
+	KICK_MSG_PLAYER_QUIT = 0,	// Player intentionally left
+	KICK_MSG_KICKED,			// Server kick message w/ no reason
+	KICK_MSG_CUSTOM_KICK,		// Server kick message w/ reason
+	KICK_MSG_VOTE_KICK,			// Vote kick message
+	KICK_MSG_BANNED,			// Ban message w/ no reason
+	KICK_MSG_CUSTOM_BAN,		// Ban message w/ custom reason
+	KICK_MSG_TIMEOUT,			// Player's connection timed out
+	KICK_MSG_PING_HIGH,			// Player hit the ping limit
+	KICK_MSG_GRIEF,				// Player was detected by antigrief
+	KICK_MSG_CON_FAIL,			// Player failed to resync game state
+	KICK_MSG_SIGFAIL,			// Player failed signature check
+	KICK_MSG__MAX				// Number of unique messages
+} kickmsg_t;
+
+typedef enum
+{
+	KR_KICK          = 1, //Kicked by server
+	KR_PINGLIMIT     = 2, //Broke Ping Limit
+	KR_SYNCH         = 3, //Synch Failure
+	KR_TIMEOUT       = 4, //Connection Timeout
+	KR_BAN           = 5, //Banned by server
+	KR_LEAVE         = 6, //Quit the game
+} kickreason_t;
+
+/* the max number of name changes in some time period */
+#define MAXNAMECHANGES (5)
+#define NAMECHANGERATE (60*TICRATE)
+
+extern dboolean server;
+extern dboolean serverrunning;
+#define client (!server)
+extern dboolean dedicated; // For dedicated server
+extern dboolean connectedtodedicated; // Client that is connected to a dedicated server.
+extern uint16_t software_MAXPACKETLENGTH;
+extern dboolean acceptnewnode;
+extern int8_t servernode;
+extern char connectedservername[MAXSERVERNAME];
+extern char connectedservercontact[MAXSERVERCONTACT];
+extern uint32_t ourIP;
+extern uint8_t lastReceivedKey[MAXNETNODES][MAXSPLITSCREENPLAYERS][PUBKEYLENGTH];
+extern uint8_t lastSentChallenge[MAXNETNODES][CHALLENGELENGTH];
+extern uint8_t lastChallengeAll[CHALLENGELENGTH];
+extern uint8_t lastReceivedSignature[MAXPLAYERS][SIGNATURELENGTH];
+extern uint8_t knownWhenChallenged[MAXPLAYERS][PUBKEYLENGTH];
+extern dboolean expectChallenge;
+
+// We give clients a chance to verify each other once per race.
+// When is that challenge sent, and when should clients bail if they don't receive the responses?
+#define CHALLENGEALL_START (TICRATE*5) // Server sends challenges here.
+#define CHALLENGEALL_KICKUNRESPONSIVE (TICRATE*10) // Server kicks players that haven't submitted signatures here.
+#define CHALLENGEALL_SENDRESULTS (TICRATE*15) // Server waits for kicks to process until here. (Failing players shouldn't be in-game when results are received, or clients get spooked.)
+#define CHALLENGEALL_CLIENTCUTOFF (TICRATE*20) // If challenge process hasn't completed by now, clients who were in-game for CHALLENGEALL_START should leave.
+
+void Command_Ping_f(void);
+extern tic_t connectiontimeout;
+extern tic_t jointimeout;
+extern uint16_t pingmeasurecount;
+extern uint32_t realpingtable[MAXPLAYERS];
+extern uint32_t playerpingtable[MAXPLAYERS];
+extern uint32_t playerpacketlosstable[MAXPLAYERS];
+extern uint32_t playerdelaytable[MAXPLAYERS];
+extern tic_t servermaxping;
+
+extern dboolean server_lagless;
+extern consvar_t cv_mindelay;
+
+extern consvar_t cv_netticbuffer, cv_allownewplayer, cv_maxconnections, cv_joindelay;
+extern consvar_t cv_pingtimeout, cv_blamecfail;
+extern consvar_t cv_maxsend, cv_noticedownload, cv_downloadspeed;
+
+#ifdef VANILLAJOINNEXTROUND
+extern consvar_t cv_joinnextround;
+#endif
+
+extern consvar_t cv_discordinvites;
+
+extern consvar_t cv_allowguests;
+
+extern consvar_t cv_gamestochat;
+
+#ifdef DEVELOP
+	extern consvar_t cv_badjoin;
+	extern consvar_t cv_badtraffic;
+	extern consvar_t cv_badresponse;
+	extern consvar_t cv_noresponse;
+	extern consvar_t cv_nochallenge;
+	extern consvar_t cv_badresults;
+	extern consvar_t cv_noresults;
+	extern consvar_t cv_badtime;
+	extern consvar_t cv_badip;
+#endif
+
+// Used in d_net, the only dependence
+tic_t ExpandTics(int32_t low, tic_t basetic);
+void D_ClientServerInit(void);
+
+void GenerateChallenge(uint8_t *buf);
+shouldsign_t ShouldSignChallenge(uint8_t *message);
+
+// Initialise the other field
+void RegisterNetXCmd(netxcmd_t id, void (*cmd_f)(const uint8_t **p, int32_t playernum));
+void SendNetXCmdForPlayer(uint8_t playerid, netxcmd_t id, const void *param, size_t nparam);
+#define SendNetXCmd(id, param, nparam) SendNetXCmdForPlayer(0, id, param, nparam) // Shortcut for P1
+void SendKick(uint8_t playernum, uint8_t msg);
+
+// Create any new ticcmds and broadcast to other players.
+void NetKeepAlive(void);
+void NetUpdate(void);
+void NetVoiceUpdate(void);
+
+void SV_StartSinglePlayerServer(int32_t dogametype, dboolean donetgame);
+dboolean SV_SpawnServer(void);
+void SV_StopServer(void);
+void SV_ResetServer(void);
+
+/*--------------------------------------------------
+	dboolean K_AddBotFromServer(uint16_t skin, uint8_t difficulty, botStyle_e style, uint8_t *newplayernum);
+
+		Adds a new bot, using a server-sided packet sent to all clients.
+		Using regular K_AddBot wherever possible is better, but this is kept
+		as a back-up measure if this is the only option.
+
+	Input Arguments:-
+		skin - Skin number that the bot will use.
+		difficulty - Difficulty level this bot will use.
+		style - Bot style to spawn this bot with, see botStyle_e.
+		newplayernum - Pointer to the last valid player slot number.
+			Is a pointer so that this function can be called multiple times to add more than one bot.
+
+	Return:-
+		true if a bot can be added via a packet later, otherwise false.
+--------------------------------------------------*/
+
+dboolean K_AddBotFromServer(uint16_t skin, uint8_t difficulty, botStyle_e style, uint8_t *p);
+
+void CL_AddSplitscreenPlayer(void);
+void CL_RemoveSplitscreenPlayer(uint8_t p);
+void CL_Reset(void);
+void CL_ClearPlayer(int32_t playernum);
+void CL_RemovePlayer(int32_t playernum, kickreason_t reason);
+void CL_QueryServerList(msg_server_t *list);
+void CL_UpdateServerList(void);
+void CL_TimeoutServerList(void);
+// Is there a game running
+dboolean Playing(void);
+dboolean InADedicatedServer(void);
+
+// Advance client-to-client pubkey verification flow
+void UpdateChallenges(void);
+
+// Broadcasts special packets to other players
+//  to notify of game exit
+void D_QuitNetGame(void);
+
+//? How many ticks to run?
+dboolean TryRunTics(tic_t realtic);
+
+// extra data for lmps
+// these functions scare me. they contain magic.
+/*dboolean AddLmpExtradata(uint8_t **demo_p, int32_t playernum);
+void ReadLmpExtraData(uint8_t **demo_pointer, int32_t playernum);*/
+
+// translate a playername in a player number return -1 if not found and
+// print a error message in the console
+int8_t nametonum(const char *name);
+
+extern char motd[254], server_context[8];
+extern uint8_t playernode[MAXPLAYERS];
+/* consoleplayer of this player (splitscreen) */
+extern uint8_t playerconsole[MAXPLAYERS];
+
+int32_t D_NumPlayers(void);
+int32_t D_NumPlayersInRace(void);
+dboolean D_IsPlayerHumanAndGaming(int32_t player_number);
+
+void D_ResetTiccmds(void);
+void D_ResetTiccmdAngle(uint8_t ss, angle_t angle);
+ticcmd_t *D_LocalTiccmd(uint8_t ss);
+
+tic_t GetLag(int32_t node);
+uint8_t GetFreeXCmdSize(uint8_t playerid);
+
+void D_MD5PasswordPass(const uint8_t *buffer, size_t len, const char *salt, void *dest);
+
+extern uint8_t hu_redownloadinggamestate;
+
+extern uint8_t adminpassmd5[16];
+extern dboolean adminpasswordset;
+
+extern dboolean hu_stopped;
+
+//
+// SRB2Kart
+//
+
+void HandleSigfail(const char *string);
+
+void DoSayPacket(int8_t target, uint8_t flags, uint8_t source, char *message);
+void DoSayPacketFromCommand(int8_t target, size_t usedargs, uint8_t flags);
+void DoVoicePacket(int8_t target, uint64_t frame, const uint8_t* opusdata, size_t len);
+void SendServerNotice(int8_t target, char *message);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif

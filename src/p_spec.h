@@ -1,0 +1,1160 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Sonic Team Junior.
+// Copyright (C) 2000 by DooM Legacy Team.
+// Copyright (C) 1996 by id Software, Inc.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  p_spec.h
+/// \brief Implements special effects:
+///        Texture animation, height or lighting changes
+///        according to adjacent sectors, respective
+///        utility functions, etc.
+
+#ifndef P_SPEC_H
+#define P_SPEC_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern mobj_t *skyboxviewpnts[16]; // array of MT_SKYBOX viewpoint mobjs
+extern mobj_t *skyboxcenterpnts[16]; // array of MT_SKYBOX centerpoint mobjs
+
+void P_InitSkyboxPoint(mobj_t *mobj, mapthing_t *mthing);
+
+// Amount (dx, dy) vector linedef is shifted right to get scroll amount
+#define SCROLL_SHIFT 5
+
+typedef int textmapmaceflags_t;
+#define TMM_DOUBLESIZE      (1)
+#define TMM_SILENT          (1<<1)
+#define TMM_ALLOWYAWCONTROL (1<<2)
+#define TMM_SWING           (1<<3)
+#define TMM_MACELINKS       (1<<4)
+#define TMM_CENTERLINK      (1<<5)
+#define TMM_CLIP            (1<<6)
+#define TMM_ALWAYSTHINK     (1<<7)
+
+typedef int textmapdronealignment_t;
+#define TMDA_BOTTOMOFFSET (1)
+#define TMDA_BOTTOM       (1<<1)
+#define TMDA_MIDDLE       (1<<2)
+#define TMDA_TOP          (1<<3)
+
+typedef int textmapspikeflags_t;
+#define TMSF_RETRACTED  (1)
+#define TMSF_INTANGIBLE (1<<1)
+
+typedef int textmapflickyflags_t;
+#define TMFF_AIMLESS    (1)
+#define TMFF_STATIONARY (1<<1)
+#define TMFF_HOP        (1<<2)
+
+typedef int textmapflameholderflags_t;
+#define TMFH_NOFLAME (1)
+#define TMFH_CORONA  (1<<1)
+
+typedef int textmapdiagonalspringflags_t;
+#define TMDS_NOGRAVITY   (1)
+#define TMDS_ROTATEEXTRA (1<<1)
+
+typedef int textmapfanflags_t;
+#define TMF_INVISIBLE       (1)
+#define TMF_NODISTANCECHECK (1<<1)
+
+typedef enum
+{
+	TMGD_BACK  = 0,
+	TMGD_RIGHT = 1,
+	TMGD_LEFT  = 2,
+} textmapguarddirection_t;
+
+typedef int textmapnightsitem_t;
+#define TMNI_BONUSONLY (1)
+#define TMNI_REVEAL    (1<<1)
+
+typedef enum
+{
+	TMP_NORMAL    = 0,
+	TMP_SLIDE     = 1,
+	TMP_IMMOVABLE = 2,
+	TMP_CLASSIC   = 3,
+} textmappushabletype_t;
+
+typedef enum
+{
+	TMED_NONE  = 0,
+	TMED_RIGHT = 1,
+	TMED_LEFT  = 2,
+} textmapeggrobodirection_t;
+
+typedef enum
+{
+	TMMR_SAME   = 0,
+	TMMR_WEAK   = 1,
+	TMMR_STRONG = 2,
+} textmapmonitorrespawn_t;
+
+typedef int textmapfangflags_t;
+#define TMF_GRAYSCALE (1)
+#define TMF_SKIPINTRO (1<<1)
+
+typedef int textmapbrakflags_t;
+#define TMB_NODEATHFLING (1)
+#define TMB_BARRIER      (1<<1)
+
+typedef int textmapwaypointflags_t;
+#define TMWPF_DISABLED   		(1)
+#define TMWPF_SHORTCUT   		(1<<1)
+#define TMWPF_NORESPAWN  		(1<<2)
+#define TMWPF_FINISHLINE 		(1<<3)
+#define TMWPF_BLOCKLIGHTSNAKE 	(1<<4)
+
+typedef int textmapaudiencemovementflags_t;
+#define TMAUDIM_FLOAT (1)
+#define TMAUDIM_BORED (1<<1)
+
+typedef int textmapbattlecapsuleflags_t;
+#define TMBCF_BACKANDFORTH (1)
+#define TMBCF_REVERSE      (1<<1)
+
+typedef int textmapitemcapsuleflags_t;
+#define TMICF_UNUSED		(1)
+#define TMICF_INVERTSIZE	(1<<1)
+
+typedef int textmapitemcapsulemodes_t;
+#define TMICM_DEFAULT (0) // Time Attack only has rings, multiplayer has everything
+#define TMICM_MULTIPLAYER (1)
+#define TMICM_TIMEATTACK (1<<1)
+
+typedef enum
+{
+	TMMA_WARN = 1,
+	TMMA_FLIP = 2,
+} textmapmayarrow_t;
+
+typedef int textmapexitflags_t;
+#define TMEF_SKIPTALLY    (1)
+#define TMEF_EMERALDCHECK (1<<1)
+
+typedef int textmapspeedpadflags_t;
+#define TMSP_NOTELEPORT (1)
+#define TMSP_FORCESPIN  (1<<1)
+
+//FOF flags
+typedef int textmapfofappearance_t;
+#define TMFA_NOPLANES    (1)
+#define TMFA_NOSIDES     (1<<1)
+#define TMFA_INSIDES     (1<<2)
+#define TMFA_ONLYINSIDES (1<<3)
+#define TMFA_NOSHADE     (1<<4)
+#define TMFA_SPLAT       (1<<5)
+
+typedef int textmapfoftangibility_t;
+#define TMFT_INTANGIBLETOP    (1)
+#define TMFT_INTANGIBLEBOTTOM (1<<1)
+#define TMFT_DONTBLOCKPLAYER  (1<<2)
+#define TMFT_VISIBLEFROMINSIDE (TMFT_INTANGIBLETOP|TMFT_INTANGIBLEBOTTOM|TMFT_DONTBLOCKPLAYER)
+#define TMFT_DONTBLOCKOTHERS  (1<<3)
+#define TMFT_INTANGIBLE       (TMFT_DONTBLOCKPLAYER|TMFT_DONTBLOCKOTHERS)
+
+typedef int textmapfofwater_t;
+#define TMFW_NOSIDES      (1)
+#define TMFW_DOUBLESHADOW (1<<1)
+#define TMFW_COLORMAPONLY (1<<2)
+#define TMFW_NORIPPLE     (1<<3)
+#define TMFW_GOOWATER     (1<<4)
+#define TMFW_SPLAT        (1<<5)
+
+typedef int textmapfofbobbing_t;
+#define TMFB_REVERSE  (1)
+#define TMFB_SPINDASH (1<<1)
+#define TMFB_DYNAMIC  (1<<2)
+
+typedef int textmapfofcrumbling_t;
+#define TMFC_NOSHADE     (1)
+#define TMFC_NORETURN    (1<<1)
+#define TMFC_AIRBOB      (1<<2)
+#define TMFC_FLOATBOB    (1<<3)
+#define TMFC_SPLAT       (1<<4)
+
+typedef int textmapfofrising_t;
+#define TMFR_REVERSE  (1)
+#define TMFR_SPINDASH (1<<1)
+
+typedef int textmapfofmario_t;
+#define TMFM_BRICK     (1)
+#define TMFM_INVISIBLE (1<<1)
+
+typedef enum
+{
+	TMFB_TOUCH,
+	TMFB_SPIN,
+	TMFB_REGULAR,
+	TMFB_STRONG,
+} textmapfofbusttype_t;
+
+typedef int textmapfofbustflags_t;
+#define TMFB_PUSHABLES   (1)
+#define TMFB_EXECUTOR    (1<<1)
+#define TMFB_ONLYBOTTOM  (1<<2)
+#define TMFB_SPLAT       (1<<3)
+
+typedef int textmapfoflaserflags_t;
+#define TMFL_NOBOSSES (1)
+#define TMFL_SPLAT    (1<<1)
+
+typedef enum
+{
+	TMT_CONTINUOUS           = 0,
+	TMT_ONCE                 = 1,
+	TMT_EACHTIMEMASK         = TMT_ONCE,
+	TMT_EACHTIMEENTER        = 2,
+	TMT_EACHTIMEENTERANDEXIT = 3,
+} textmaptriggertype_t;
+
+typedef enum
+{
+	TMXT_CONTINUOUS           = 0,
+	TMXT_EACHTIMEMASK         = TMXT_CONTINUOUS,
+	TMXT_EACHTIMEENTER        = 1,
+	TMXT_EACHTIMEENTERANDEXIT = 2,
+} textmapxtriggertype_t;
+
+typedef enum
+{
+	TMF_HASALL        = 0,
+	TMF_HASANY        = 1,
+	TMF_HASEXACTLY    = 2,
+	TMF_DOESNTHAVEALL = 3,
+	TMF_DOESNTHAVEANY = 4,
+} textmapflagcheck_t;
+
+typedef enum
+{
+	TMT_ORANGE = 0,
+	TMT_BLUE = 1,
+} textmapteam_t;
+
+typedef enum
+{
+	TMC_EQUAL = 0,
+	TMC_LTE   = 1,
+	TMC_GTE   = 2,
+} textmapcomparison_t;
+
+typedef enum
+{
+	TMNP_FASTEST   = 0,
+	TMNP_SLOWEST   = 1,
+	TMNP_TRIGGERER = 2,
+} textmapnightsplayer_t;
+
+typedef enum
+{
+	TMN_ALWAYS       = 0,
+	TMN_FROMNONIGHTS = 1,
+	TMN_FROMNIGHTS   = 2,
+} textmapnighterizeoptions_t;
+
+typedef int textmapnightserizeflags_t;
+#define TMN_BONUSLAPS       (1)
+#define TMN_LEVELCOMPLETION (1<<2)
+
+typedef enum
+{
+	TMD_ALWAYS         = 0,
+	TMD_NOBODYNIGHTS   = 1,
+	TMD_SOMEBODYNIGHTS = 2,
+} textmapdenighterizeoptions_t;
+
+typedef enum
+{
+	TMS_IFENOUGH    = 0,
+	TMS_IFNOTENOUGH = 1,
+	TMS_ALWAYS      = 2,
+} textmapspherescheck_t;
+
+typedef int textmapideyacaptureflags_t;
+#define TMI_BONUSLAPS (1)
+#define TMI_ENTER     (1<<2)
+
+typedef enum
+{
+	TMP_FLOOR = 0,
+	TMP_CEILING = 1,
+	TMP_BOTH = 2,
+} textmapplanes_t;
+
+typedef enum
+{
+	TMT_ADD          = 0,
+	TMT_REMOVE       = 1,
+	TMT_REPLACEFIRST = 2,
+} textmaptagoptions_t;
+
+typedef int textmapteleportflags_t;
+#define TMT_SILENT       (1)
+#define TMT_KEEPANGLE    (1<<1)
+#define TMT_KEEPMOMENTUM (1<<2)
+#define TMT_RELATIVE     (1<<3)
+
+typedef int textmapmusicflags_t;
+#define TMM_ALLPLAYERS (1)
+#define TMM_OFFSET (1<<1)
+#define TMM_FADE (1<<2)
+#define TMM_NORELOAD (1<<3)
+#define TMM_FORCERESET (1<<4)
+#define TMM_NOLOOP (1<<5)
+#define TMM_NOCREDIT (1<<6)
+
+typedef enum
+{
+	TMSS_TRIGGERMOBJ   = 0,
+	TMSS_TRIGGERSECTOR = 1,
+	TMSS_NOWHERE       = 2,
+	TMSS_TAGGEDSECTOR  = 3,
+} textmapsoundsource_t;
+
+typedef enum
+{
+	TMSL_EVERYONE     = 0,
+	TMSL_TRIGGERER    = 1,
+	TMSL_TAGGEDSECTOR = 2,
+} textmapsoundlistener_t;
+
+typedef enum
+{
+	TML_SECTOR  = 0,
+	TML_FLOOR   = 1,
+	TML_CEILING = 2,
+} textmaplightareas_t;
+
+typedef int textmaplightcopyflags_t;
+#define TMLC_NOSECTOR  (1)
+#define TMLC_NOFLOOR   (1<<1)
+#define TMLC_NOCEILING (1<<2)
+
+typedef int textmapfadeflags_t;
+#define TMF_RELATIVE (1)
+#define TMF_OVERRIDE (1<<1)
+#define TMF_TICBASED (1<<2)
+
+typedef int textmapblinkinglightflags_t;
+#define TMB_USETARGET (1)
+#define TMB_SYNC      (1<<1)
+
+typedef int textmapfofrespawnflags_t;
+#define TMFR_NORETURN  (1)
+#define TMFR_CHECKFLAG (1<<1)
+
+typedef int textmapsettranslucencyflags_t;
+#define TMST_RELATIVE          (1)
+#define TMST_DONTDOTRANSLUCENT (1<<1)
+
+typedef int textmapfadetranslucencyflags_t;
+#define TMFT_RELATIVE          (1)
+#define TMFT_OVERRIDE          (1<<1)
+#define TMFT_TICBASED          (1<<2)
+#define TMFT_IGNORECOLLISION   (1<<3)
+#define TMFT_GHOSTFADE         (1<<4)
+#define TMFT_DONTDOTRANSLUCENT (1<<5)
+#define TMFT_DONTDOEXISTS      (1<<6)
+#define TMFT_DONTDOLIGHTING    (1<<7)
+#define TMFT_DONTDOCOLORMAP    (1<<8)
+#define TMFT_USEEXACTALPHA     (1<<9)
+
+typedef enum
+{
+	TMS_VIEWPOINT   = 0,
+	TMS_CENTERPOINT = 1,
+	TMS_BOTH        = 2,
+} textmapskybox_t;
+
+typedef int textmappromptflags_t;
+#define TMP_CLOSE          (1)
+#define TMP_RUNPOSTEXEC    (1<<1)
+#define TMP_CALLBYNAME     (1<<2)
+#define TMP_KEEPCONTROLS   (1<<3)
+#define TMP_KEEPREALTIME   (1<<4)
+// #define TMP_ALLPLAYERS     (1<<5)
+// #define TMP_FREEZETHINKERS (1<<6)
+
+typedef enum
+{
+	TMF_NOCHANGE = 0,
+	TMF_ADD      = 1,
+	TMF_REMOVE   = 2,
+} textmapsetflagflags_t;
+
+typedef enum
+{
+	TMSD_FRONT = 0,
+	TMSD_BACK = 1,
+	TMSD_FRONTBACK = 2,
+} textmapsides_t;
+
+typedef enum
+{
+	TMS_SCROLLCARRY = 0,
+	TMS_SCROLLONLY = 1,
+	TMS_CARRYONLY = 2,
+} textmapscroll_t;
+
+typedef enum
+{
+	TMST_REGULAR = 0,
+	TMST_ACCELERATIVE = 1,
+	TMST_DISPLACEMENT = 2,
+	TMST_TYPEMASK = 3,
+	TMST_NONEXCLUSIVE = 4,
+} textmapscrolltype_t;
+
+typedef int textmappusherflags_t;
+#define TMPF_SLIDE (1)
+#define TMPF_NONEXCLUSIVE (1<<1)
+
+typedef int textmappointpushflags_t;
+#define TMPP_NOZFADE      (1)
+#define TMPP_PUSHZ        (1<<1)
+#define TMPP_NONEXCLUSIVE (1<<2)
+
+typedef enum
+{
+	TMB_TRANSLUCENT     = 0,
+	TMB_ADD             = 1,
+	TMB_SUBTRACT        = 2,
+	TMB_REVERSESUBTRACT = 3,
+	TMB_MODULATE        = 4,
+} textmapblendmodes_t;
+
+typedef int textmapcrossfinishflags_t;
+#define TMCFF_FLIP (1)
+
+typedef int textmapcrossrespawnflags_t;
+#define TMCRF_FRONTONLY (1)
+
+typedef int textmapbotcontroller_t;
+#define TMBOT_NORUBBERBAND (1)
+#define TMBOT_NOCONTROL    (1<<1)
+#define TMBOT_FORCEDIR     (1<<2)
+#define TMBOT_FASTFALL     (1<<3)
+
+typedef enum
+{
+	TMBOTTR_NONE = 0,
+	TMBOTTR_LEFT = 1,
+	TMBOTTR_RIGHT = 2,
+	TMBOTTR_UP = 3,
+	TMBOTTR_DOWN = 4,
+} textmapbottrick_t;
+
+typedef enum
+{
+	TMLOOP_ALPHA = 0,
+	TMLOOP_BETA  = 1,
+} textmaploopendpointtype_t;
+
+typedef enum
+{
+	TMCAM_FIRST = -1,
+	TMCAM_SECOND = -2,
+	TMCAM_THIRD = -3,
+	TMCAM_CONSOLE = -4,
+} textmapcamerafollow_t;
+
+// GETSECSPECIAL (specialval, section)
+//
+// Pulls out the special # from a particular section.
+//
+#define GETSECSPECIAL(i,j) ((i >> ((j-1)*4))&15)
+
+// This must be updated whenever we up the max flat size - quicker to assume rather than figuring out the sqrt of the specific flat's filesize.
+#define MAXFLATSIZE (2048<<FRACBITS)
+
+// create earthquakes
+void P_StartQuake(tic_t time, fixed_t intensity, fixed_t radius, mappoint_t *epicenter);
+void P_StartQuakeFromMobj(tic_t time, fixed_t intensity, fixed_t radius, mobj_t *mobj);
+void P_DoQuakeOffset(uint8_t view, mappoint_t *viewPos, mappoint_t *offset);
+void P_FreeQuake(quake_t *remove);
+
+// at game start
+void P_InitPicAnims(void);
+
+// at map load (sectors)
+void P_SetupLevelFlatAnims(void);
+
+// at map load
+void P_InitSpecials(void);
+void P_ApplyFlatAlignment(sector_t* sector, angle_t flatangle, fixed_t xoffs, fixed_t yoffs, dboolean floor, dboolean ceiling);
+fixed_t P_GetSectorGravityFactor(sector_t *sec);
+void P_SpawnSpecials(dboolean fromnetsave);
+void P_SpawnSpecialsThatRequireObjects(dboolean fromnetsave);
+
+// every tic
+void P_UpdateSpecials(void);
+sector_t *P_MobjTouchingSectorSpecial(mobj_t *mo, int32_t section, int32_t number);
+sector_t *P_MobjTouchingSectorSpecialFlag(mobj_t *mo, sectorspecialflags_t flag);
+sector_t *P_PlayerTouchingSectorSpecial(player_t *player, int32_t section, int32_t number);
+sector_t *P_PlayerTouchingSectorSpecialFlag(player_t *player, sectorspecialflags_t flag);
+void P_PlayerInSpecialSector(player_t *player);
+void P_CheckMobjTrigger(mobj_t *mobj, dboolean pushable);
+void P_CheckMobjTouchingSectorActions(mobj_t *mobj, dboolean continuous, dboolean sectorchanged);
+sector_t *P_FindPlayerTrigger(player_t *player, line_t *sourceline);
+dboolean P_IsPlayerValid(size_t playernum);
+dboolean P_CanPlayerTrigger(size_t playernum);
+void P_ProcessSpecialSector(player_t *player, sector_t *sector, sector_t *roversector);
+void P_CheckSectorTransitionalEffects(mobj_t *thing, sector_t *prevsec, dboolean wasgrounded);
+
+fixed_t P_FindLowestFloorSurrounding(sector_t *sec);
+fixed_t P_FindHighestFloorSurrounding(sector_t *sec);
+
+fixed_t P_FindNextHighestFloor(sector_t *sec, fixed_t currentheight);
+fixed_t P_FindNextLowestFloor(sector_t *sec, fixed_t currentheight);
+
+fixed_t P_FindLowestCeilingSurrounding(sector_t *sec);
+fixed_t P_FindHighestCeilingSurrounding(sector_t *sec);
+
+int32_t P_FindMinSurroundingLight(sector_t *sector, int32_t max);
+
+void P_CrossSpecialLine(line_t *line, int32_t side, mobj_t *thing);
+void P_PushSpecialLine(line_t *line, mobj_t *thing);
+void P_ActivateThingSpecial(mobj_t *mo, mobj_t *source);
+
+mobj_t* P_FindObjectTypeFromTag(mobjtype_t type, mtag_t tag);
+
+//
+// Special activation info
+//
+struct activator_t
+{
+	mobj_t *mo;
+	line_t *line;
+	uint8_t side;
+	sector_t *sector;
+	polyobj_t *po;
+	dboolean fromLineSpecial; // Backwards compat for ACS
+};
+
+dboolean P_CanActivateSpecial(int16_t special);
+dboolean P_ProcessSpecial(activator_t *activator, int16_t special, int32_t *args, char **stringargs);
+
+void P_SetupSignExit(player_t *player, dboolean tie);
+
+dboolean P_IsMobjTouchingSectorPlane(mobj_t *mo, sector_t *sec);
+dboolean P_IsMobjTouching3DFloor(mobj_t *mo, ffloor_t *ffloor, sector_t *sec);
+dboolean P_IsMobjTouchingPolyobj(mobj_t *mo, polyobj_t *po, sector_t *polysec);
+
+void P_SwitchWeather(preciptype_t newWeather);
+
+dboolean P_RunTriggerLinedef(line_t *triggerline, mobj_t *actor, sector_t *caller);
+void P_LinedefExecute(int16_t tag, mobj_t *actor, sector_t *caller);
+void P_RunNightserizeExecutors(mobj_t *actor);
+void P_RunDeNightserizeExecutors(mobj_t *actor);
+void P_RunNightsLapExecutors(mobj_t *actor);
+void P_RunNightsCapsuleTouchExecutors(mobj_t *actor, dboolean entering, dboolean enoughspheres);
+
+uint16_t P_GetFFloorID(ffloor_t *fflr);
+ffloor_t *P_GetFFloorByID(sector_t *sec, uint16_t id);
+
+// Use this when you don't know the type of your thinker data struct but need to access its thinker.
+struct thinkerdata_t
+{
+	thinker_t thinker;
+};
+
+//
+// P_LIGHTS
+//
+/** Fire flicker action structure.
+  */
+struct fireflicker_t
+{
+	thinker_t thinker; ///< The thinker in use for the effect.
+	sector_t *sector;  ///< The sector where action is taking place.
+	int32_t count;
+	int32_t resetcount;
+	int16_t maxlight;    ///< The brightest light level to use.
+	int16_t minlight;    ///< The darkest light level to use.
+};
+
+struct lightflash_t
+{
+	thinker_t thinker;
+	sector_t *sector;
+	int32_t maxlight;
+	int32_t minlight;
+};
+
+/** Laser block thinker.
+  */
+struct laserthink_t
+{
+	thinker_t thinker; ///< Thinker structure for laser.
+	int16_t tag;
+	line_t *sourceline;
+	uint8_t nobosses;
+};
+
+/** Strobe light action structure..
+  */
+struct strobe_t
+{
+	thinker_t thinker; ///< The thinker in use for the effect.
+	sector_t *sector;  ///< The sector where the action is taking place.
+	int32_t count;
+	int16_t minlight;    ///< The minimum light level to use.
+	int16_t maxlight;    ///< The maximum light level to use.
+	int32_t darktime;    ///< How int32_t to use minlight.
+	int32_t brighttime;  ///< How int32_t to use maxlight.
+};
+
+struct glow_t
+{
+	thinker_t thinker;
+	sector_t *sector;
+	int16_t minlight;
+	int16_t maxlight;
+	int16_t direction;
+	int16_t speed;
+};
+
+/** Thinker struct for fading lights.
+  */
+struct lightlevel_t
+{
+	thinker_t thinker;		///< Thinker in use for the effect.
+	sector_t *sector;		///< Sector where action is taking place.
+	int16_t sourcelevel;		///< Light level we're fading from.
+	int16_t destlevel;		///< Light level we're fading to.
+
+	fixed_t fixedcurlevel;	///< Fixed point for current light level.
+	fixed_t fixedpertic;	///< Fixed point for increment per tic.
+	// The reason for those two above to be fixed point is to deal with decimal values that would otherwise get trimmed away.
+	int32_t timer;			///< Internal timer.
+};
+
+#define GLOWSPEED 8
+#define STROBEBRIGHT 5
+#define FASTDARK 15
+#define SLOWDARK 35
+
+void P_RemoveLighting(sector_t *sector);
+
+void T_FireFlicker(fireflicker_t *flick);
+fireflicker_t *P_SpawnAdjustableFireFlicker(sector_t *sector, int16_t lighta, int16_t lightb, int32_t length);
+void T_LightningFlash(lightflash_t *flash);
+void T_StrobeFlash(strobe_t *flash);
+
+void P_SpawnLightningFlash(sector_t *sector);
+strobe_t * P_SpawnAdjustableStrobeFlash(sector_t *sector, int16_t lighta, int16_t lightb, int32_t darktime, int32_t brighttime, dboolean inSync);
+
+void T_Glow(glow_t *g);
+glow_t *P_SpawnAdjustableGlowingLight(sector_t *sector, int16_t lighta, int16_t lightb, int32_t length);
+
+void P_FadeLightBySector(sector_t *sector, int32_t destvalue, int32_t speed, dboolean ticbased);
+void P_FadeLight(int16_t tag, int32_t destvalue, int32_t speed, dboolean ticbased, dboolean force, dboolean relative);
+void T_LightFade(lightlevel_t *ll);
+
+typedef enum
+{
+	floor_special,
+	ceiling_special,
+	lighting_special,
+} special_e;
+
+//
+// P_CEILNG
+//
+typedef enum
+{
+	raiseToHighest,
+	lowerToLowestFast,
+
+	instantRaise, // instant-move for ceilings
+
+	crushAndRaise,
+	raiseAndCrush,
+	crushCeilOnce,
+	crushBothOnce,
+
+	moveCeilingByFrontSector,
+	instantMoveCeilingByFrontSector,
+
+	moveCeilingByDistance,
+
+	bounceCeiling,
+	bounceCeilingCrush,
+} ceiling_e;
+
+/** Ceiling movement structure.
+  */
+struct ceiling_t
+{
+	thinker_t thinker;    ///< Thinker for the type of movement.
+	ceiling_e type;       ///< Type of movement.
+	sector_t *sector;     ///< Sector where the action is taking place.
+	fixed_t bottomheight; ///< The lowest height to move to.
+	fixed_t topheight;    ///< The highest height to move to.
+	fixed_t speed;        ///< Ceiling speed.
+	fixed_t delay;
+	fixed_t delaytimer;
+	uint8_t crush;           ///< Whether to crush things or not.
+
+	int32_t texture;        ///< The number of a flat to use when done.
+	int32_t direction;      ///< 1 = up, 0 = waiting, -1 = down.
+
+	// ID
+	int16_t tag;            ///< Tag of linedef executor to run when movement is done.
+	fixed_t origspeed;    ///< The original, "real" speed.
+
+	fixed_t crushHeight;  ///< Crusher height
+	fixed_t crushSpeed;   ///< Crusher speed
+	fixed_t returnHeight; ///< Crusher return height
+	fixed_t returnSpeed;  ///< Crusher return speed
+};
+
+#define CEILSPEED (FRACUNIT)
+
+int32_t EV_DoCeiling(mtag_t tag, line_t *line, ceiling_e type);
+void T_MoveCeiling(ceiling_t *ceiling);
+
+dboolean EV_DoRaiseCeilingToHighest(mtag_t tag);
+dboolean EV_DoLowerCeilingToLowestFast(mtag_t tag);
+dboolean EV_DoInstantRaiseCeiling(mtag_t tag);
+dboolean EV_DoMoveCeilingByHeight(mtag_t tag, fixed_t height, fixed_t speed, mtag_t chain, int32_t texture);
+dboolean EV_DoInstantMoveCeilingByHeight(mtag_t tag, fixed_t height, int32_t texture);
+dboolean EV_DoMoveCeilingByDistance(mtag_t tag, fixed_t distance, fixed_t speed, dboolean instant);
+dboolean EV_DoBounceCeiling(mtag_t tag, dboolean crush, fixed_t crushHeight, fixed_t crushSpeed, fixed_t returnHeight, fixed_t returnSpeed, int32_t delayInit, int32_t delay);
+
+int32_t EV_DoCrush(mtag_t tag, line_t *line, ceiling_e type);
+void T_CrushCeiling(ceiling_t *ceiling);
+
+dboolean EV_DoRaiseAndCrushCeiling(mtag_t tag, fixed_t speed, fixed_t returnSpeed);
+dboolean EV_DoCrushBothOnce(mtag_t tag, fixed_t speed);
+dboolean EV_DoCrushCeilingOnce(mtag_t tag, fixed_t speed);
+
+//
+// P_FLOOR
+//
+typedef enum
+{
+	// raise floor to next highest surrounding floor
+	raiseFloorToNearestFast,
+
+	// move the floor down instantly
+	instantLower,
+
+	moveFloorByFrontSector,
+	instantMoveFloorByFrontSector,
+
+	moveFloorByDistance,
+
+	bounceFloor,
+	bounceFloorCrush,
+
+	crushFloorOnce,
+} floor_e;
+
+typedef enum
+{
+	elevateUp,
+	elevateDown,
+	elevateContinuous,
+	elevateBounce,
+	elevateHighest,
+	bridgeFall,
+} elevator_e;
+
+struct floormove_t
+{
+	thinker_t thinker;
+	floor_e type;
+	uint8_t crush;
+	sector_t *sector;
+	int32_t direction;
+	int32_t texture;
+	fixed_t floordestheight;
+	fixed_t speed;
+	fixed_t origspeed;
+	fixed_t delay;
+	fixed_t delaytimer;
+	int16_t tag;
+	fixed_t crushHeight;
+	fixed_t crushSpeed;
+	fixed_t returnHeight;
+	fixed_t returnSpeed;
+};
+
+struct elevator_t
+{
+	thinker_t thinker;
+	elevator_e type;
+	sector_t *sector;
+	sector_t *actionsector; // The sector the rover action is taking place in.
+	int32_t direction;
+	fixed_t floordestheight;
+	fixed_t ceilingdestheight;
+	fixed_t speed;
+	fixed_t origspeed;
+	fixed_t low;
+	fixed_t high;
+	fixed_t distance;
+	fixed_t delay;
+	fixed_t delaytimer;
+	fixed_t floorwasheight; // Height the floor WAS at
+	fixed_t ceilingwasheight; // Height the ceiling WAS at
+};
+
+typedef int crumbleflag_t;
+#define CF_RETURN   (1)    // Return after crumbling
+#define CF_FLOATBOB (1<<1) // Float on water
+#define CF_REVERSE  (1<<2) // Reverse gravity
+
+struct crumble_t
+{
+	thinker_t thinker;
+	line_t *sourceline;
+	sector_t *sector;
+	sector_t *actionsector; // The sector the rover action is taking place in.
+	player_t *player; // Player who initiated the thinker (used for airbob)
+	int32_t direction;
+	int32_t origalpha;
+	int32_t timer;
+	fixed_t speed;
+	fixed_t floorwasheight; // Height the floor WAS at
+	fixed_t ceilingwasheight; // Height the ceiling WAS at
+	uint8_t flags;
+};
+
+struct noenemies_t
+{
+	thinker_t thinker;
+	line_t *sourceline; // Source line of the thinker
+};
+
+struct continuousfall_t
+{
+	thinker_t thinker;
+	sector_t *sector;
+	fixed_t speed;
+	int32_t direction;
+	fixed_t floorstartheight;
+	fixed_t ceilingstartheight;
+	fixed_t destheight;
+};
+
+struct bouncecheese_t
+{
+	thinker_t thinker;
+	line_t *sourceline;
+	sector_t *sector;
+	fixed_t speed;
+	fixed_t distance;
+	fixed_t floorwasheight;
+	fixed_t ceilingwasheight;
+	dboolean low;
+};
+
+struct mariothink_t
+{
+	thinker_t thinker;
+	sector_t *sector;
+	fixed_t speed;
+	int32_t direction;
+	fixed_t floorstartheight;
+	fixed_t ceilingstartheight;
+	int16_t tag;
+};
+
+struct mariocheck_t
+{
+	thinker_t thinker;
+	line_t *sourceline;
+	sector_t *sector;
+};
+
+struct thwomp_t
+{
+	thinker_t thinker;
+	line_t *sourceline;
+	sector_t *sector;
+	fixed_t crushspeed;
+	fixed_t retractspeed;
+	int32_t direction;
+	fixed_t floorstartheight;
+	fixed_t ceilingstartheight;
+	int32_t delay;
+	int16_t tag;
+	uint16_t sound;
+	int32_t initDelay;
+};
+
+struct floatthink_t
+{
+	thinker_t thinker;
+	line_t *sourceline;
+	sector_t *sector;
+	int16_t tag;
+};
+
+struct eachtime_t
+{
+	thinker_t thinker;
+	line_t *sourceline; // Source line of the thinker
+	dboolean playersInArea[MAXPLAYERS];
+	dboolean triggerOnExit;
+};
+
+typedef int raiseflag_t;
+#define RF_REVERSE  (1)    //Lower when stood on
+#define RF_SPINDASH (1<<1) //Require spindash to move
+#define RF_DYNAMIC  (1<<2) //Dynamically sinking platform
+
+struct raise_t
+{
+	thinker_t thinker;
+	int16_t tag;
+	sector_t *sector;
+	fixed_t ceilingbottom;
+	fixed_t ceilingtop;
+	fixed_t basespeed;
+	fixed_t extraspeed; //For dynamically sinking platform
+	uint8_t shaketimer; //For dynamically sinking platform
+	uint8_t flags;
+};
+
+#define ELEVATORSPEED (FRACUNIT*4)
+#define FLOORSPEED (FRACUNIT)
+
+typedef enum
+{
+	ok,
+	crushed,
+	pastdest
+} result_e;
+
+result_e T_MovePlane(sector_t *sector, fixed_t speed, fixed_t dest, dboolean crush,
+	dboolean ceiling, int32_t direction);
+
+void EV_DoFloor(mtag_t tag, line_t *line, floor_e floortype);
+void EV_DoRaiseFloorToNearestFast(mtag_t tag);
+void EV_DoInstantLowerFloor(mtag_t tag);
+void EV_DoInstantMoveFloorByHeight(mtag_t tag, fixed_t height, int32_t texture);
+void EV_DoMoveFloorByHeight(mtag_t tag, fixed_t height, fixed_t speed, mtag_t chain, int32_t texture);
+void EV_DoMoveFloorByDistance(mtag_t tag, fixed_t distance, fixed_t speed, dboolean instant);
+void EV_DoBounceFloor(mtag_t tag, dboolean crush, fixed_t crushHeight, fixed_t crushSpeed, fixed_t returnHeight, fixed_t returnSpeed, int32_t delayInit, int32_t delay);
+void EV_DoCrushFloorOnce(mtag_t tag, fixed_t speed);
+
+void EV_DoElevator(mtag_t tag, line_t *line, elevator_e elevtype);
+void EV_DoElevateDown(mtag_t tag);
+void EV_DoElevateUp(mtag_t tag);
+void EV_DoElevateHighest(mtag_t tag);
+void EV_DoContinuousElevator(mtag_t tag, fixed_t speed, int32_t delayInit, int32_t delay, dboolean lowFirst);
+void EV_DoBridgeFall(mtag_t tag);
+
+void EV_CrumbleChain(sector_t *sec, ffloor_t *rover);
+void EV_BounceSector(sector_t *sector, fixed_t momz, line_t *sourceline);
+
+// Some other special 3dfloor types
+int32_t EV_StartCrumble(sector_t *sector, ffloor_t *rover,
+	dboolean floating, player_t *player, fixed_t origalpha, dboolean crumblereturn);
+
+void EV_DoContinuousFall(sector_t *sec, sector_t *backsector, fixed_t spd, dboolean backwards);
+
+void EV_MarioBlock(ffloor_t *rover, sector_t *sector, mobj_t *puncher);
+
+void T_MoveFloor(floormove_t *movefloor);
+
+void T_MoveElevator(elevator_t *elevator);
+void T_ContinuousFalling(continuousfall_t *faller);
+void T_BounceCheese(bouncecheese_t *bouncer);
+void T_StartCrumble(crumble_t *crumble);
+void T_MarioBlock(mariothink_t *block);
+void T_FloatSector(floatthink_t *floater);
+void T_MarioBlockChecker(mariocheck_t *block);
+void T_ThwompSector(thwomp_t *thwomp);
+void T_NoEnemiesSector(noenemies_t *nobaddies);
+void T_EachTimeThinker(eachtime_t *eachtime);
+void T_CameraScanner(elevator_t *elevator);
+void T_RaiseSector(raise_t *raise);
+
+struct executor_t
+{
+	thinker_t thinker; // Thinker for linedef executor delay
+	line_t *line;      // Pointer to line that is waiting.
+	mobj_t *caller;    // Pointer to calling mobj
+	sector_t *sector;  // Pointer to triggering sector
+	int32_t timer;       // Delay timer
+};
+
+void T_ExecutorDelay(executor_t *e);
+
+/** Generalized scroller.
+  */
+struct scroll_t
+{
+	thinker_t thinker;   ///< Thinker structure for scrolling.
+	fixed_t dx, dy;      ///< (dx,dy) scroll speeds.
+	int32_t affectee;      ///< Number of affected sidedef or sector.
+	int32_t control;       ///< Control sector (-1 if none) used to control scrolling.
+	fixed_t last_height; ///< Last known height of control sector.
+	fixed_t vdx, vdy;    ///< Accumulated velocity if accelerative.
+	int32_t accel;         ///< Whether it's accelerative.
+	int32_t exclusive;     ///< If a conveyor, same property as in pusher_t
+	/** Types of generalized scrollers.
+	*/
+	enum
+	{
+		sc_side,         ///< Scroll wall texture on a sidedef.
+		sc_floor,        ///< Scroll floor.
+		sc_ceiling,      ///< Scroll ceiling.
+		sc_carry,        ///< Carry objects on floor.
+		sc_carry_ceiling,///< Carry objects on ceiling (for 3Dfloor conveyors).
+	} type;
+};
+
+void T_Scroll(scroll_t *s);
+void T_LaserFlash(laserthink_t *flash);
+
+/** Friction for ice/sludge effects.
+  */
+struct friction_t
+{
+	thinker_t thinker;   ///< Thinker structure for friction.
+	int32_t friction;      ///< Friction value, 0xe800 = normal.
+	int32_t movefactor;    ///< Inertia factor when adding to momentum, FRACUNIT = normal.
+	int32_t affectee;      ///< Number of affected sector.
+	int32_t referrer;      ///< If roverfriction == true, then this will contain the sector # of the control sector where the effect was applied.
+	uint8_t roverfriction;  ///< flag for whether friction originated from a FOF or not
+};
+
+// Friction defines.
+#define ORIG_FRICTION          (0xF5 << (FRACBITS-8)) ///< Original value.
+
+void T_Friction(friction_t *f);
+
+typedef enum
+{
+	p_wind,        ///< Wind.
+	p_current,     ///< Current.
+} pushertype_e;
+
+// Model for pushers for push/pull effects
+struct pusher_t
+{
+	thinker_t thinker;  ///< Thinker structure for pusher effect.
+	pushertype_e type;  ///< Type of pusher effect.
+	fixed_t x_mag;      ///< X strength.
+	fixed_t y_mag;      ///< Y strength.
+	fixed_t z_mag;      ///< Z strength.
+	int32_t affectee;     ///< Number of affected sector.
+	uint8_t roverpusher;  ///< flag for whether pusher originated from a FOF or not
+	int32_t referrer;     ///< If roverpusher == true, then this will contain the sector # of the control sector where the effect was applied.
+	int32_t exclusive;    /// < Once this affect has been applied to a mobj, no other pushers may affect it.
+	int32_t slider;       /// < Should the player go into an uncontrollable slide?
+};
+
+// Model for disappearing/reappearing FOFs
+struct disappear_t
+{
+	thinker_t thinker;  ///< Thinker structure for effect.
+	tic_t appeartime;   ///< Tics to be appeared for
+	tic_t disappeartime;///< Tics to be disappeared for
+	tic_t offset;       ///< Time to wait until thinker starts
+	tic_t timer;        ///< Timer between states
+	int32_t affectee;     ///< Number of affected line
+	int32_t sourceline;   ///< Number of source line
+	int32_t exists;       ///< Exists toggle
+};
+
+void T_Disappear(disappear_t *d);
+
+// Model for fading FOFs
+struct fade_t
+{
+	thinker_t thinker;  ///< Thinker structure for effect.
+	ffloor_t *rover;    ///< Target ffloor
+	extracolormap_t *dest_exc; ///< Colormap to fade to
+	uint32_t sectornum;    ///< Number of ffloor target sector
+	uint32_t ffloornum;    ///< Number of ffloor of target sector
+	int32_t alpha;        ///< Internal alpha counter
+	int16_t sourcevalue;  ///< Transparency value to fade from
+	int16_t destvalue;    ///< Transparency value to fade to
+	int16_t destlightlevel; ///< Light level to fade to
+	int16_t speed;        ///< Speed to fade by
+	dboolean ticbased;    ///< Tic-based logic toggle
+	int32_t timer;        ///< Timer for tic-based logic
+	dboolean doexists;   ///< Handle FOF_EXISTS
+	dboolean dotranslucent; ///< Handle FOF_TRANSLUCENT
+	dboolean dolighting; ///< Handle shadows and light blocks
+	dboolean docolormap; ///< Handle colormaps
+	dboolean docollision; ///< Handle interactive flags
+	dboolean doghostfade; ///< No interactive flags during fading
+	dboolean exactalpha; ///< Use exact alpha values (opengl)
+};
+
+void T_Fade(fade_t *d);
+
+// Model for fading colormaps
+
+struct fadecolormap_t
+{
+	thinker_t thinker;          ///< Thinker structure for effect.
+	sector_t *sector;           ///< Sector where action is taking place.
+	extracolormap_t *source_exc;
+	extracolormap_t *dest_exc;
+	dboolean ticbased;           ///< Tic-based timing
+	int32_t duration;             ///< Total duration for tic-based logic (OR: speed increment)
+	int32_t timer;                ///< Timer for tic-based logic (OR: internal speed counter)
+};
+
+void T_FadeColormap(fadecolormap_t *d);
+
+// Prototype function for pushers
+void T_Pusher(pusher_t *p);
+
+// Plane displacement
+struct planedisplace_t
+{
+	thinker_t thinker;   ///< Thinker structure for plane displacement effect.
+	int32_t affectee;      ///< Number of affected sector.
+	int32_t control;       ///< Control sector used to control plane positions.
+	fixed_t last_height; ///< Last known height of control sector.
+	fixed_t speed;       ///< Plane movement speed.
+	uint8_t reverse;       ///< Move in reverse direction to control sector?
+	/** Types of plane displacement effects.
+	*/
+	enum
+	{
+		pd_floor,        ///< Displace floor.
+		pd_ceiling,      ///< Displace ceiling.
+		pd_both,         ///< Displace both floor AND ceiling.
+	} type;
+};
+
+void T_PlaneDisplace(planedisplace_t *pd);
+
+void P_CalcHeight(player_t *player);
+
+/* line specials */
+enum
+{
+	LT_SLOPE_ANCHORS             = 777,
+
+	// binary converter
+	LT_SLOPE_ANCHORS_OLD_FLOOR   = 777,
+	LT_SLOPE_ANCHORS_OLD_CEILING = 778,
+	LT_SLOPE_ANCHORS_OLD         = 779,
+};
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif

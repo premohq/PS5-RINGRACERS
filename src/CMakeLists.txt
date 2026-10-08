@@ -1,0 +1,537 @@
+include(CheckCXXCompilerFlag)
+
+target_sources(SRB2SDL2 PRIVATE
+	comptime.c
+	cxxutil.hpp
+	md5.c
+	config.h.in
+	string.c
+	d_main.cpp
+	d_clisrv.c
+	d_net.cpp
+	d_netfil.c
+	d_netcmd.c
+	dehacked.c
+	deh_soc.c
+	deh_lua.c
+	deh_tables.c
+	dosstr.c
+	z_zone.cpp
+	f_finale.c
+	f_wipe.cpp
+	g_build_ticcmd.cpp
+	g_demo.cpp
+	g_game.c
+	g_gamedata.cpp
+	g_input.c
+	g_party.cpp
+	am_map.c
+	command.c
+	console.c
+	cvars.cpp
+	font.c
+	hu_stuff.cpp
+	i_time.c
+	i_video_common.cpp
+	y_inter.cpp
+	st_stuff.c
+	m_aatree.c
+	m_anigif.c
+	m_argv.c
+	m_bbox.c
+	m_cheat.c
+	m_cond.c
+	m_easing.c
+	m_fixed.c
+	m_memcpy.c
+	m_misc.cpp
+	m_perfstats.c
+	m_pw.cpp
+	m_pw_hash.c
+	m_random.c
+	m_queue.c
+	info.c
+	p_ceilng.c
+	p_enemy.c
+	p_floor.c
+	p_inter.c
+	p_lights.c
+	p_link.cpp
+	p_loop.c
+	p_map.c
+	p_mapthing.cpp
+	p_maputl.c
+	p_mobj.c
+	p_polyobj.c
+	p_saveg.cpp
+	p_setup.cpp
+	p_sight.c
+	p_spec.c
+	p_telept.c
+	p_tick.c
+	p_user.c
+	p_slopes.c
+	p_sweep.cpp
+	p_test.cpp
+	tables.c
+	r_bsp.cpp
+	r_data.c
+	r_debug.cpp
+	r_debug_parser.cpp
+	r_debug_printer.cpp
+	r_draw.cpp
+	r_fps.cpp
+	r_main.cpp
+	r_plane.cpp
+	r_segs.cpp
+	r_skins.c
+	r_sky.c
+	r_splats.c
+	r_spritefx.cpp
+	r_things.cpp
+	r_bbox.c
+	r_textures.cpp
+	r_textures_dups.cpp
+	r_patch.cpp
+	r_patchrotation.c
+	r_picformats.c
+	r_portal.c
+	screen.c
+	taglist.c
+	v_draw.cpp
+	v_video.cpp
+	s_sound.c
+	sounds.c
+	strcasestr.c
+	w_wad.cpp
+	filesrch.c
+	mserv.c
+	http-mserv.c
+	i_tcp.c
+	lzf.c
+	vid_copy.s
+	lua_script.c
+	lua_baselib.c
+	lua_mathlib.c
+	lua_hooklib.c
+	lua_consolelib.c
+	lua_infolib.c
+	lua_mobjlib.c
+	lua_playerlib.c
+	lua_skinlib.c
+	lua_thinkerlib.c
+	lua_maplib.c
+	lua_taglib.c
+	lua_terrainlib.c
+	lua_polyobjlib.c
+	lua_blockmaplib.c
+	lua_botvarslib.c
+	lua_hudlib.c
+	lua_hudlib_drawlist.c
+	lua_followerlib.c
+	lua_itemroulettelib.c
+	lua_respawnvarslib.c
+	lua_waypointslib.c
+	lua_grandprixlib.c
+	lua_profile.cpp
+	k_kart.c
+	k_respawn.c
+	k_collide.cpp
+	k_color.c
+	k_race.c
+	k_battle.c
+	k_pwrlv.c
+	k_waypoint.cpp
+	k_pathfind.c
+	k_bheap.c
+	k_bot.cpp
+	k_botitem.cpp
+	k_botsearch.cpp
+	k_grandprix.cpp
+	k_boss.c
+	k_hud.cpp
+	k_hud_track.cpp
+	k_menufunc.c
+	k_menudraw.c
+	k_terrain.c
+	k_brightmap.c
+	k_terrain.c
+	k_director.cpp
+	k_follower.c
+	k_profiles.cpp
+	k_specialstage.c
+	k_roulette.c
+	k_podium.cpp
+	k_rank.cpp
+	k_vote.c
+	k_serverstats.c
+	k_zvote.c
+	k_mapuser.c
+	k_powerup.cpp
+	k_hitlag.c
+	k_dialogue.cpp
+	k_tally.cpp
+	k_bans.cpp
+	k_endcam.cpp
+	k_credits.cpp
+	k_modinfo.cpp
+	music.cpp
+	music_manager.cpp
+	sanitize.cpp
+	p_deepcopy.cpp
+)
+
+target_include_directories(
+	SRB2SDL2 PRIVATE
+	"${CMAKE_BINARY_DIR}/src"
+	"${CMAKE_BINARY_DIR}/$<CONFIG>/src"
+)
+
+# Always compile some files with optimizations in Debug config.
+# This is to make the debugging experience less slow for the majority of cases.
+set(always_optimize_options "")
+if(MSVC)
+	set(always_optimize_options "$<$<CONFIG:Debug>:/O2;/Ob2>")
+else()
+	set(always_optimize_options "$<$<CONFIG:Debug>:-O3>")
+endif()
+set_source_files_properties(
+	r_bsp.cpp
+	r_data.c
+	r_debug.cpp
+	r_debug_parser.cpp
+	r_debug_printer.cpp
+	r_draw.cpp
+	r_fps.cpp
+	r_main.cpp
+	r_plane.cpp
+	r_segs.cpp
+	r_skins.c
+	r_sky.c
+	r_splats.c
+	r_spritefx.cpp
+	r_things.cpp
+	r_bbox.c
+	r_textures.cpp
+	r_textures_dups.cpp
+	r_patch.cpp
+	r_patchrotation.c
+	r_picformats.c
+	r_portal.c
+	PROPERTIES
+	COMPILE_OPTIONS "${always_optimize_options}"
+)
+
+if(SRB2_CONFIG_ENABLE_WEBM_MOVIES)
+	target_sources(SRB2SDL2 PRIVATE m_avrecorder.cpp)
+endif()
+
+set(SRB2_ASM_SOURCES vid_copy.s)
+
+set(SRB2_NASM_SOURCES tmap_mmx.nas tmap.nas)
+
+### Configuration
+set(SRB2_CONFIG_USEASM OFF CACHE BOOL
+	"Enable NASM tmap implementation for software mode speedup.")
+set(SRB2_CONFIG_YASM OFF CACHE BOOL
+	"Use YASM in place of NASM.")
+
+add_subdirectory(blua)
+
+# OS macros
+if (UNIX)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DUNIXCOMMON)
+endif()
+
+if (BSD MATCHES "FreeBSD")
+	target_compile_definitions(SRB2SDL2 PRIVATE -DFREEBSD)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCC)
+	find_program(OBJCOPY objcopy)
+endif()
+
+if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
+	target_compile_definitions(SRB2SDL2 PRIVATE -DLINUX)
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		target_compile_definitions(SRB2SDL2 PRIVATE -DLINUX64)
+	endif()
+endif()
+
+if("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")
+	target_compile_definitions(SRB2SDL2 PRIVATE -DMACOSX)
+endif()
+
+target_link_libraries(SRB2SDL2 PRIVATE ZLIB::ZLIB)
+target_link_libraries(SRB2SDL2 PRIVATE PNG::PNG)
+target_link_libraries(SRB2SDL2 PRIVATE CURL::libcurl)
+target_link_libraries(SRB2SDL2 PRIVATE Opus::opus)
+target_link_libraries(SRB2SDL2 PRIVATE ReNameNoise::renamenoise)
+target_compile_definitions(SRB2SDL2 PRIVATE -DHAVE_ZLIB -DHAVE_PNG -DHAVE_CURL -D_LARGEFILE64_SOURCE)
+target_sources(SRB2SDL2 PRIVATE apng.c)
+
+target_compile_definitions(SRB2SDL2 PRIVATE -DUSE_STUN)
+target_sources(SRB2SDL2 PRIVATE stun.cpp)
+if(SRB2_CONFIG_ENABLE_DISCORDRPC)
+	target_link_libraries(SRB2SDL2 PRIVATE DiscordRPC::DiscordRPC)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DHAVE_DISCORDRPC)
+	target_sources(SRB2SDL2 PRIVATE discord.c)
+endif()
+
+target_link_libraries(SRB2SDL2 PRIVATE glm::glm)
+target_link_libraries(SRB2SDL2 PRIVATE Stb)
+target_link_libraries(SRB2SDL2 PRIVATE xmp-lite::xmp-lite)
+target_link_libraries(SRB2SDL2 PRIVATE glad::glad)
+target_link_libraries(SRB2SDL2 PRIVATE fmt::fmt-header-only)
+target_link_libraries(SRB2SDL2 PRIVATE imgui::imgui)
+target_link_libraries(SRB2SDL2 PRIVATE Tracy::TracyClient)
+if(SRB2_CONFIG_ENABLE_WEBM_MOVIES)
+	target_link_libraries(SRB2SDL2 PRIVATE webm::libwebm_mkvmuxer)
+	target_link_libraries(SRB2SDL2 PRIVATE libyuv::libyuv)
+	target_link_libraries(SRB2SDL2 PRIVATE Vorbis::vorbis Vorbis::vorbisenc)
+	target_link_libraries(SRB2SDL2 PRIVATE Ogg::ogg)
+	if(unofficial-libvpx_FOUND)
+		target_link_libraries(SRB2SDL2 PRIVATE unofficial::libvpx::libvpx)
+	else()
+		target_link_libraries(SRB2SDL2 PRIVATE libvpx::libvpx)
+	endif()
+	target_compile_definitions(SRB2SDL2 PRIVATE -DSRB2_CONFIG_ENABLE_WEBM_MOVIES)
+endif()
+
+target_link_libraries(SRB2SDL2 PRIVATE nlohmann_json::nlohmann_json)
+
+set(SRB2_HAVE_THREADS ON)
+target_compile_definitions(SRB2SDL2 PRIVATE -DHAVE_THREADS)
+target_link_libraries(SRB2SDL2 PRIVATE Threads::Threads)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Windows" AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+	target_link_libraries(SRB2SDL2 PRIVATE "dbghelp")
+endif()
+
+if(SRB2_CONFIG_HWRENDER)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DHWRENDER)
+	add_subdirectory(hardware)
+
+	if(SRB2_CONFIG_LINK_OPENGL)
+		find_package(OpenGL)
+		if(OPENGL_FOUND)
+			target_compile_definitions(SRB2SDL2 PRIVATE -DSTATIC_OPENGL)
+		else()
+			message(WARNING "You have specified static opengl but opengl was not found. Not setting HWRENDER.")
+		endif()
+	endif()
+endif()
+
+if(${SRB2_CONFIG_USEASM})
+	#SRB2_ASM_FLAGS can be used to pass flags to either nasm or yasm.
+	if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
+		set(SRB2_ASM_FLAGS "-DLINUX ${SRB2_ASM_FLAGS}")
+	endif()
+
+	if(${SRB2_CONFIG_YASM})
+		set(CMAKE_ASM_YASM_SOURCE_FILE_EXTENSIONS ${CMAKE_ASM_YASM_SOURCE_FILE_EXTENSIONS} nas)
+		set(CMAKE_ASM_YASM_FLAGS "${SRB2_ASM_FLAGS}" CACHE STRING "Flags used by the assembler during all build types.")
+		enable_language(ASM_YASM)
+	else()
+		set(CMAKE_ASM_NASM_SOURCE_FILE_EXTENSIONS ${CMAKE_ASM_NASM_SOURCE_FILE_EXTENSIONS} nas)
+		set(CMAKE_ASM_NASM_FLAGS "${SRB2_ASM_FLAGS}" CACHE STRING "Flags used by the assembler during all build types.")
+		enable_language(ASM_NASM)
+	endif()
+
+	set(SRB2_USEASM ON)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DUSEASM)
+	target_compile_options(SRB2SDL2 PRIVATE -msse3 -mfpmath=sse)
+
+	target_sources(SRB2SDL2 PRIVATE ${SRB2_ASM_SOURCES}
+		${SRB2_NASM_SOURCES})
+else()
+	set(SRB2_USEASM OFF)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DNONX86 -DNORUSEASM)
+endif()
+
+# Compiler warnings configuration
+target_compile_options(SRB2SDL2 PRIVATE
+	# Using generator expressions to handle per-language compile options
+
+	# C, GNU
+	# This is a direct translation from versions.mk
+	$<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:GNU>>:
+		-Wall
+		-Werror-implicit-function-declaration
+		-Wno-trigraphs
+		-W # Was controlled by RELAXWARNINGS
+		-pedantic
+		-Wpedantic
+		-Wfloat-equal
+		-Wundef
+		-Wpointer-arith
+		-Wbad-function-cast
+		-Wcast-qual
+		-Wcast-align # Was controlled by NOCASTALIGNWARN
+		-Wwrite-strings
+		-Wsign-compare
+		-Wmissing-prototypes
+		-Wmissing-declarations
+		-Wmissing-noreturn
+		-Winline
+		-Wformat-y2k
+		-Wformat-security
+
+		-Wold-style-definition
+		-Wmissing-field-initializers
+
+		-Wshadow
+
+		-funit-at-a-time
+		-Wlogical-op
+
+		-Wlogical-op
+		-Wno-error=array-bounds
+
+		-Wno-suggest-attribute=noreturn
+		-Wno-error=suggest-attribute=noreturn
+		-Werror=vla
+
+		-Wno-logical-op
+		-Wno-error=logical-op
+
+		-Wno-tautological-compare
+		-Wno-error=tautological-compare
+
+		-Wno-error=format-overflow=2
+		-Wimplicit-fallthrough=4
+
+		-Wno-error=format-overflow
+		-Wno-error=stringop-truncation
+		-Wno-error=stringop-overflow
+		-Wno-format-overflow
+		-Wno-stringop-truncation
+		-Wno-stringop-overflow
+		-Wno-error=multistatement-macros
+
+		-Wno-error=address-of-packed-member
+	>
+
+	# C, Clang and Apple Clang
+	$<$<AND:$<COMPILE_LANGUAGE:C>,$<OR:$<C_COMPILER_ID:AppleClang>,$<C_COMPILER_ID:Clang>>>:
+		#-Wall
+		-Werror=microsoft
+		-Werror=implicit-function-declaration
+		-Wreturn-type # Missing returns in non-void function
+		-Wduplicate-decl-specifier
+		-Wsometimes-uninitialized
+		-Wno-trigraphs # Trigraphs are disabled
+		-Wc11-extensions # Don't use C11 language extensions not part of baseline
+		-Wno-unused-but-set-variable # Setting unread variables is fine
+		-Wno-misleading-indentation # Some cases in code currently
+		-Wno-deprecated-non-prototype # We have no intention of using C23 yet.
+		-Wno-parentheses-equality
+		-Wno-unsafe-buffer-usage # Very common in this codebase
+		-Wno-unused-const-variable
+		-Wno-unused-variable
+		-Wno-unused-function
+		-Wno-nullability-completeness
+	>
+
+	# C, MSVC
+	$<$<AND:$<COMPILE_LANGUAGE:C>,$<C_COMPILER_ID:MSVC>>:
+		# All warnings at and before Visual Studio 2019 RTM
+		# https://learn.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warnings-by-compiler-version?view=msvc-170
+		/Wv:19.20.27004.0
+	>
+
+	# C++, GNU
+	$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:GNU>>:
+		-Wall
+		-Wno-c++11-compat
+		-Wno-c++14-compat # No C++14 compat needed
+	>
+
+	# C++, Clang and Apple Clang
+	$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<OR:$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:Clang>>>:
+		#-Wall
+		-Werror=microsoft
+		-Wdelete-abstract-non-virtual-dtor
+		-Wreturn-type # Missing returns in non-void function
+		-Wduplicate-decl-specifier
+		-Wsometimes-uninitialized
+		-Wno-trigraphs # Trigraphs are disabled
+		-Wno-c++98-compat
+		-Wno-c++11-compat
+		-Wno-c++14-compat # No C++14 compat needed
+		-Werror=c++20-extensions
+		-Werror=c++23-extensions # Disallow newer language features entirely
+		-Wno-unused-but-set-variable # Setting unread variables is fine (nontrivial C++ types issue)
+		-Wno-misleading-indentation # Some cases in code currently
+		-Wno-deprecated-non-prototype # We have no intention of using C23 yet.
+		-Wno-parentheses-equality
+		-Wno-unsafe-buffer-usage # Very common in this codebase
+		-Wno-unused-const-variable
+		-Wno-unused-variable
+		-Wno-unused-function
+		-Wno-nullability-completeness
+	>
+
+	# C++, Clang and Apple Clang
+
+	# C++, MSVC
+	$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:
+		/Wv:19.20.27004.0
+	>
+
+	# GNU
+	$<$<C_COMPILER_ID:GNU>:
+		-fmax-errors=5
+	>
+)
+if(SRB2_CONFIG_ERRORMODE)
+	target_compile_options(SRB2SDL2 PRIVATE
+		$<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:AppleClang>,$<C_COMPILER_ID:Clang>>:
+			-Werror
+		>
+
+		$<$<C_COMPILER_ID:MSVC>:
+			/WX
+		>
+	)
+endif()
+
+if(SRB2_CONFIG_DEV_BUILD)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DDEVELOP)
+endif()
+target_compile_definitions(SRB2SDL2 PRIVATE -DCMAKECONFIG "CMAKE_BUILD_TYPE=\"$<CONFIG>\"")
+
+# Misc. build options from Makefiles
+if(SRB2_CONFIG_DEBUGMODE)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DZDEBUG -DPARANOIA -DPACKETDROP)
+endif()
+if(SRB2_CONFIG_MOBJCONSISTANCY)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DMOBJCONSISTANCY)
+endif()
+if(SRB2_CONFIG_PACKETDROP)
+	target_compile_definitions(SRB2SDL2 PRIVATE -DPACKETDROP)
+endif()
+if(SRB2_CONFIG_PROFILEMODE AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
+	target_compile_options(SRB2SDL2 PRIVATE -pg)
+	target_link_options(SRB2SDL2 PRIVATE -pg)
+endif()
+if(SRB2_CONFIG_ASAN)
+	target_compile_options(SRB2SDL2 PRIVATE -fsanitize=address)
+	target_link_options(SRB2SDL2 PRIVATE -fsanitize=address)
+endif()
+
+add_subdirectory(audio)
+add_subdirectory(core)
+add_subdirectory(hwr2)
+add_subdirectory(io)
+add_subdirectory(sdl)
+add_subdirectory(objects)
+add_subdirectory(acs)
+add_subdirectory(rhi)
+add_subdirectory(monocypher)
+add_subdirectory(menus)
+if(SRB2_CONFIG_ENABLE_WEBM_MOVIES)
+	add_subdirectory(media)
+endif()
+add_subdirectory(hud)
+add_subdirectory(modp_b64)

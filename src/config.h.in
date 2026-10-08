@@ -1,0 +1,24 @@
+/** SRB2 CMake Configuration */
+
+#ifndef SRB2_CONFIG_H
+#define SRB2_CONFIG_H
+
+/* DO NOT MODIFY config.h DIRECTLY! It will be overwritten by cmake.
+ * If you want to change a configuration option here, modify it in
+ * your CMakeCache.txt. config.h.in is used as a template for CMake
+ * variables, so you can insert them here too.
+ */
+
+#cmakedefine HAVE_STRUPR
+#cmakedefine HAVE_STRLWR
+#cmakedefine HAVE_STRCASESTR
+#cmakedefine HAVE_STRCASECMP
+#cmakedefine HAVE_STRNCASECMP
+#cmakedefine HAVE_STRICMP
+#cmakedefine HAVE_STRNICMP
+#cmakedefine HAVE_STRLCAT
+#cmakedefine HAVE_STRLCPY
+
+
+
+#endif // SRB2_CONFIG_H

@@ -1,0 +1,150 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Sonic Team Junior.
+// Copyright (C) 2000 by DooM Legacy Team.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  screen.h
+/// \brief Handles multiple resolutions, 8bpp/16bpp(highcolor) modes
+
+#ifndef SCREEN_H
+#define SCREEN_H
+
+#include "command.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// quickhack for V_Init()... to be cleaned up
+#ifdef NOPOSTPROCESSING
+#define NUMSCREENS 2
+#else
+#define NUMSCREENS 5
+#endif
+
+// Size of statusbar.
+#define ST_HEIGHT 32
+#define ST_WIDTH 320
+
+// used now as a maximum video mode size for extra vesa modes.
+
+// we try to re-allocate a minimum of buffers for stability of the memory,
+// so all the small-enough tables based on screen size, are allocated once
+// and for all at the maximum size.
+#define MAXVIDWIDTH 1920 // don't set this too high because actually
+#define MAXVIDHEIGHT 1200 // lots of tables are allocated with the MAX size.
+#define BASEVIDWIDTH 320 // NEVER CHANGE THIS! This is the original
+#define BASEVIDHEIGHT 200 // resolution of the graphics.
+
+// global video state
+struct viddef_t
+{
+	int32_t modenum; // vidmode num indexes videomodes list
+
+	uint8_t *buffer; // invisible screens buffer
+	size_t rowbytes; // bytes per scanline of the VIDEO mode
+	int32_t width; // PIXELS per scanline
+	int32_t height;
+	uint32_t realwidth; // real pixel width of window/screen
+	uint32_t realheight; // real pixel height of window/screen
+	union { // don't need numpages for OpenGL, so we can use it for fullscreen/windowed mode
+		int32_t numpages; // always 1, page flipping todo
+		int32_t windowed; // windowed or fullscren mode?
+	} u;
+	int32_t recalc; // if true, recalc vid-based stuff
+	uint8_t *direct; // linear frame buffer, or vga base mem.
+	int32_t dupx, dupy; // scale 1, 2, 3 value for menus & overlays
+	int32_t/*fixed_t*/ fdupx, fdupy; // same as dupx, dupy, but exact value when aspect ratio isn't 320/200
+	int32_t bpp; // BYTES per pixel: 1 = 256color, 2 = highcolor
+
+	int32_t baseratio; // Used to get the correct value for lighting walls
+
+	// for Win32 version
+	uint8_t smalldupx, smalldupy; // factor for a little bit of scaling
+	uint8_t meddupx, meddupy; // factor for moderate, but not full, scaling
+#ifdef HWRENDER
+	int32_t/*fixed_t*/ fsmalldupx, fsmalldupy;
+	int32_t/*fixed_t*/ fmeddupx, fmeddupy;
+	int32_t glstate;
+#endif
+};
+
+enum
+{
+	VID_GL_LIBRARY_NOTLOADED  = 0,
+	VID_GL_LIBRARY_LOADED     = 1,
+	VID_GL_LIBRARY_ERROR      = -1,
+};
+
+// ----------------
+// screen variables
+// ----------------
+extern viddef_t vid;
+extern int32_t setmodeneeded; // mode number to set if needed, or 0
+extern uint8_t setrenderneeded;
+
+extern double averageFPS;
+
+void SCR_ChangeRenderer(void);
+
+extern CV_PossibleValue_t cv_renderer_t[];
+
+extern int32_t scr_bpp;
+extern uint8_t *scr_borderpatch; // patch used to fill the view borders
+
+extern consvar_t cv_scr_width, cv_scr_height, cv_scr_depth, cv_renderview, cv_renderer, cv_renderhitbox, cv_fullscreen;
+extern consvar_t cv_scr_effect;
+extern consvar_t cv_parallelsoftware;
+extern consvar_t cv_display;
+
+// wait for page flipping to end or not
+extern consvar_t cv_vidwait;
+extern consvar_t cv_timescale;
+
+// Initialize the screen
+void SCR_Startup(void);
+
+// Change video mode, only at the start of a refresh.
+void SCR_SetMode(void);
+
+// Set drawer functions for Software
+void SCR_SetDrawFuncs(void);
+
+// Set current column / span drawers
+void R_SetColumnFunc(size_t id, dboolean brightmapped);
+void R_SetSpanFunc(size_t id, dboolean npo2, dboolean brightmapped);
+dboolean R_SetSpanFuncFlat(size_t id); // flat color
+
+// Compare current column drawer
+dboolean R_CheckColumnFunc(size_t id);
+
+// Recalc screen size dependent stuff
+void SCR_Recalc(void);
+
+// Check parms once at startup
+void SCR_CheckDefaultMode(void);
+
+// Set the mode number which is saved in the config
+void SCR_SetDefaultMode(void);
+
+void SCR_CalculateFPS(void);
+
+FUNCMATH dboolean SCR_IsAspectCorrect(int32_t width, int32_t height);
+
+// move out to main code for consistency
+void SCR_DisplayTicRate(void);
+void SCR_ClosedCaptions(void);
+void SCR_DisplayLocalPing(void);
+void SCR_DisplayMarathonInfo(void);
+#undef DNWH
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif //SCREEN_H

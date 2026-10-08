@@ -1,0 +1,11 @@
+# Update from https://github.com/nothings/stb
+add_library(Stb STATIC)
+target_sources(Stb PRIVATE stb_rect_pack.c stb_vorbis.c)
+target_sources(Stb PUBLIC include/stb_rect_pack.h include/stb_vorbis.h)
+target_include_directories(Stb PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+if(CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+	target_compile_options(Stb PRIVATE -w)
+elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+	target_compile_options(Stb PRIVATE /W0)
+endif()
+add_library(Stb::Stb ALIAS Stb)

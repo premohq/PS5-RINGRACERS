@@ -1,0 +1,144 @@
+// DR. ROBOTNIK'S RING RACERS
+//-----------------------------------------------------------------------------
+// Copyright (C) 2025 by Kart Krew.
+// Copyright (C) 2020 by Sonic Team Junior.
+// Copyright (C) 2004 by Stephen McGranahan.
+//
+// This program is free software distributed under the
+// terms of the GNU General Public License, version 2.
+// See the 'LICENSE' file for more details.
+//-----------------------------------------------------------------------------
+/// \file  p_slopes.c
+/// \brief ZDoom + Eternity Engine Slopes, ported and enhanced by Kalaron
+
+#ifndef P_SLOPES_H
+#define P_SLOPES_H
+
+#include "m_fixed.h" // Vectors
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern pslope_t *slopelist;
+extern uint16_t slopecount;
+
+typedef enum
+{
+	TMSP_FRONTFLOOR,
+	TMSP_FRONTCEILING,
+	TMSP_BACKFLOOR,
+	TMSP_BACKCEILING,
+} textmapslopeplane_t;
+
+typedef int32_t textmapslopecopy_t;
+#define TMSC_FRONTTOBACKFLOOR   (1)
+#define TMSC_BACKTOFRONTFLOOR   (1<<1)
+#define TMSC_FRONTTOBACKCEILING (1<<2)
+#define TMSC_BACKTOFRONTCEILING (1<<3)
+
+typedef enum
+{
+	TMS_NONE,
+	TMS_FRONT,
+	TMS_BACK,
+} textmapside_t;
+
+typedef int32_t textmapslopeflags_t;
+#define TMSL_NOPHYSICS (1)
+#define TMSL_DYNAMIC   (1<<1)
+#define TMSL_COPY      (1<<2)
+
+typedef int32_t textmapslopeanchor_t;
+#define TMSA_FLOOR   (1)
+#define TMSA_CEILING (1<<1)
+
+typedef int32_t textmapslopeanchorflags_t;
+#define TMSAF_NOPHYSICS (1)
+#define TMSAF_DYNAMIC   (1<<1)
+#define TMSAF_BACKSIDE  (1<<2)
+#define TMSAF_MIRROR    (1<<3)
+
+void P_LinkSlopeThinkers (void);
+
+void P_UpdateSlopeLightOffset(pslope_t *slope);
+void P_CalculateSlopeNormal(pslope_t *slope);
+void P_ReconfigureViaVertexes(pslope_t *slope, const vector3_t v1, const vector3_t v2, const vector3_t v3);
+void P_InitSlopes(void);
+void P_SpawnSlopes(const dboolean fromsave);
+
+//
+// P_CopySectorSlope
+//
+// Searches through tagged sectors and copies
+//
+void P_CopySectorSlope(line_t *line);
+
+pslope_t *P_SlopeById(uint16_t id);
+
+// Returns the height of the sloped plane at (x, y) as a fixed_t
+fixed_t P_GetSlopeZAt(const pslope_t *slope, fixed_t x, fixed_t y);
+
+// Like P_GetSlopeZAt but falls back to z if slope is NULL
+fixed_t P_GetZAt(const pslope_t *slope, fixed_t x, fixed_t y, fixed_t z);
+
+// Returns the height of the sector at (x, y)
+fixed_t P_GetSectorFloorZAt  (const sector_t *sector, fixed_t x, fixed_t y);
+fixed_t P_GetSectorCeilingZAt(const sector_t *sector, fixed_t x, fixed_t y);
+
+// Returns the height of the FOF at (x, y)
+fixed_t P_GetFFloorTopZAt   (const ffloor_t *ffloor, fixed_t x, fixed_t y);
+fixed_t P_GetFFloorBottomZAt(const ffloor_t *ffloor, fixed_t x, fixed_t y);
+
+// Returns the height of the light list at (x, y)
+fixed_t P_GetLightZAt(const lightlist_t *light, fixed_t x, fixed_t y);
+
+// Lots of physics-based bullshit
+dboolean P_CanApplySlopePhysics(mobj_t *mo, pslope_t *slope);
+dboolean P_CanApplySlopeLaunch(mobj_t *mo, pslope_t *slope);
+void P_QuantizeMomentumToSlope(vector3_t *momentum, pslope_t *slope);
+void P_ReverseQuantizeMomentumToSlope(vector3_t *momentum, pslope_t *slope);
+void P_SlopeLaunch(mobj_t *mo);
+fixed_t P_GetWallTransferMomZ(mobj_t *mo, pslope_t *slope);
+void P_HandleSlopeLanding(mobj_t *thing, pslope_t *slope);
+void P_ButteredSlope(mobj_t *mo);
+
+pslope_t *MakeViaEquationConstants(const fixed_t a, const fixed_t b, const fixed_t c, const fixed_t d);
+
+/// Dynamic plane type enum for the thinker. Will have a different functionality depending on this.
+typedef enum {
+	DP_FRONTFLOOR,
+	DP_FRONTCEIL,
+	DP_BACKFLOOR,
+	DP_BACKCEIL,
+} dynplanetype_t;
+
+/// Permit slopes to be dynamically altered through a thinker.
+struct dynlineplanethink_t
+{
+	thinker_t thinker;
+	pslope_t *slope;
+	dynplanetype_t type;
+	line_t *sourceline;
+	fixed_t extent;
+};
+
+struct dynvertexplanethink_t
+{
+	thinker_t thinker;
+	pslope_t *slope;
+	sector_t *secs[3];
+	vector3_t vex[3];
+	fixed_t origsecheights[3];
+	fixed_t origvecheights[3];
+	uint8_t relative;
+};
+
+void T_DynamicSlopeLine (dynlineplanethink_t* th);
+void T_DynamicSlopeVert (dynvertexplanethink_t* th);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // #ifndef P_SLOPES_H__
