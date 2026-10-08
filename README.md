@@ -41,7 +41,7 @@ folder to `/data/ringracers/` on the console.
 
 ## Getting a build
 
-**Download one:** every push to `main` is built by GitHub Actions. Open the
+**Download one:** every push is built by GitHub Actions. Open the
 **Actions** tab, choose the latest green **PS5 build** run, and download the
 `PPSA99620` artifact.
 

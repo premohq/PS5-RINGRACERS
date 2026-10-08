@@ -77,7 +77,7 @@ sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 py
 
 ## Getting a build without building
 
-Every push to `main` is built by GitHub Actions (`.github/workflows/ps5.yml`).
+Every push is built by GitHub Actions (`.github/workflows/ps5.yml`).
 Open the repository's **Actions** tab, pick the latest green **PS5 build** run,
 and download the `PPSA99620` artifact at the bottom of its page. Unzipped, it
 is the title folder described below, without the game data: put `bios.pk3`
