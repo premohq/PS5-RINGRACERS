@@ -78,7 +78,7 @@ sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 py
 Every push is built by GitHub Actions (`.github/workflows/ps5.yml`).
 Open the repository's **Actions** tab, pick the latest green **PS5 build** run,
 and download the `PPSA99620` artifact at the bottom of its page. Unzipped, it
-is the title folder described below, game data included (about 840 MB), ready
+is the title folder described below, game data included (about 820 MB), ready
 to copy to the console (see "Installing").
 
 On a fork, GitHub leaves workflows off until someone presses **I understand
@@ -91,7 +91,7 @@ workflow** button there starts a build by hand.
 tools/ps5/build.sh
 ```
 
-That one command fetches everything (about 1.4 GB, checked against pinned
+That one command fetches everything (about 1.3 GB, checked against pinned
 SHA-256 sums, kept in `build/ps5-deps/`), builds the game into `build/ps5/`, and
 writes the title folder:
 
@@ -142,7 +142,7 @@ The game looks for `bios.pk3` and `data/` in these places, in order:
 3. `/mnt/usb0/ringracers/`, `/mnt/usb1/ringracers/`, `/mnt/ext0/ringracers/`
 
 Copy them to `/data/ringracers/` once and build with `--no-assets`, and a new
-build of the title is a 60 MB upload instead of 840 MB.
+build of the title is a 60 MB upload instead of 820 MB.
 
 ### Where your files go
 
