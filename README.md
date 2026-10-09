@@ -1,114 +1,125 @@
-# Dr. Robotnik's Ring Racers for PlayStation 5
-
 <p align="center">
-  <a href="https://www.kartkrew.org">
-    <img src="docs/logo.png" width="404" style="image-rendering:pixelated" alt="Dr. Robotnik's Ring Racers logo">
-  </a>
+  <img src="docs/banner.png" alt="Dr. Robotnik's Ring Racers for PS5" style="image-rendering:pixelated">
 </p>
 
-An unofficial port of [Dr. Robotnik's Ring Racers](https://www.kartkrew.org/) to
-jailbroken PlayStation 5 consoles, as a native title with its own tile on the
-home screen.
+<p align="center">
+  An unofficial port of <a href="https://www.kartkrew.org/">Dr. Robotnik's Ring Racers</a> to jailbroken PlayStation 5 consoles,<br>
+  as a native title with its own tile on the home screen.
+</p>
 
-**It is not affiliated with Kart Krew.** Please do not report problems with this
-port to them.
+---
 
-**It has run on one console so far** (firmware 13.60, etaHEN,
-ShadowMountPlus), where it starts, finds its data and plays. Most of the
-checklist in [docs/PS5.md](docs/PS5.md#first-console-test) has not been
-checked yet; it says what to send back if something goes wrong.
+> **This port is not affiliated with Kart Krew.** Please don't report problems
+> with it to them. Open an issue here instead.
 
-## What it does
+## Features
 
-The game is upstream Ring Racers, unchanged except for a platform layer in
-place of SDL (`src/ps5/`). So both renderers, the sound mixer, netplay, add-ons,
-replays and profiles are the PC version's.
+The game is upstream Ring Racers with a PS5 platform layer in place of SDL, so
+both renderers, the sound, netplay, add-ons, replays and profiles are the same
+as on PC.
 
-* Up to 4K: the game renders at up to 3840x2160 and outputs 4K by default
-  (or 1080p or 1440p), at 60 or 120 Hz
-* DualSense controllers, up to four for splitscreen, with rumble and light bar
-* Online play with other copies of this build (not with public 2.4 servers;
-  [why](docs/PS5.md#online-play-and-versions))
-* USB keyboard for chat and the console
+- **Up to 4K**: renders at up to 3840x2160, at 60 or 120 Hz
+- **DualSense controllers**: up to four players in splitscreen, with rumble and light bar
+- **Online play** with other players on this build ([details](docs/PS5.md#online-play-and-versions))
+- **USB keyboard** for chat and the console
+- **Small download**: the title is about 60 MB and fetches the game data
+  (750 MB) from Kart Krew's official release on its first boot
 
-[docs/PS5.md](docs/PS5.md) has the full list, including what is missing.
+The full list, including what's missing, is in [docs/PS5.md](docs/PS5.md).
 
-## The first boot downloads the game data
+## Installing
 
-The title is about 60 MB. The first time it starts, it downloads the game's
-`bios.pk3` and `data/` (750 MB) from Kart Krew's own Ring Racers 2.4 release,
-checks them against a pinned SHA-256 and unpacks them, on a screen of its own
-in the game's font. They go to `/data/ringracers/` when your loader lets the
-title write there, and otherwise to the title's own storage. Every start after that goes
-straight to the game. An interrupted download picks up where it stopped on
-the next start.
+### What you need
 
-The data is not committed here: the music alone is 313 MB, over GitHub's
-100 MB limit for a file.
+- A PS5 that can run homebrew and launch native title folders. It's been
+  played on firmware 13.60 with **etaHEN** and **ShadowMountPlus**.
+- An FTP client on your PC (FileZilla, WinSCP, ...)
+- An internet connection on the console for the first launch
 
-## Getting a build
+### Steps
 
-**Download one:** every push is built by GitHub Actions. Open the
-**Actions** tab, choose the latest green **PS5 build** run, and download the
-`PPSA99620` artifact.
+1. **Download the game.** Get `PPSA99620.zip` from the
+   [Releases](https://github.com/premohq/PS5-RINGRACERS/releases) page, or
+   the `PPSA99620` artifact from the latest green
+   [PS5 build](https://github.com/premohq/PS5-RINGRACERS/actions/workflows/ps5.yml)
+   run. Unzip it, which gives you a folder called `PPSA99620`.
+2. **Copy it to the console.** Connect to your PS5 over FTP and upload the
+   whole `PPSA99620` folder (not the zip) into `/data/homebrew/`, so that you
+   end up with `/data/homebrew/PPSA99620/eboot.bin`.
+3. **Add it to the home screen.** Launch the folder the way your loader
+   launches native titles. With ShadowMountPlus, it picks up
+   `/data/homebrew/PPSA99620` and Ring Racers gets its own tile.
+4. **Start the game.** The first launch shows a download screen: it fetches
+   the game data, checks it and unpacks it. Leave it running until it says
+   **READY!** If it gets interrupted, starting the game again picks up where
+   it left off.
+5. **Race!** Every launch after that goes straight to the game.
 
-**Or build it** on Linux or WSL:
+### Updating
+
+Copy the new `eboot.bin` (or the whole new `PPSA99620` folder) over the old
+one. Your game data and saves stay where they are.
+
+### Where things go
+
+Your settings, saves, replays and `latest-log.txt` go to `/data/ringracers/`
+when the loader lets the game write there, otherwise to the title's own
+storage. Command line arguments can go in `ringracers-args.txt` in the title
+folder. More in [docs/PS5.md](docs/PS5.md#where-your-files-go).
+
+**Something not working?** See
+[When it does not work](docs/PS5.md#when-it-does-not-work) for what to check
+and what to include in an issue.
+
+## Building from source
+
+On Linux or WSL:
 
 ```bash
 sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 python3-venv git curl unzip
 tools/ps5/build.sh
 ```
 
-That fetches every SDK and the game data (pinned, checksummed), builds, and
-writes the title folder to `build/ps5/dist/PPSA99620/`. Add `--bundle-data` to
-put the game data in the title, for a console that is not online.
+That fetches every SDK and the game data (pinned and checksummed), builds the
+game, and writes the title folder to `build/ps5/dist/PPSA99620/`. Add
+`--bundle-data` to put the game data inside the title, for a console that
+isn't online. [docs/PS5.md](docs/PS5.md#building) explains the rest, and how
+the port is put together.
 
-## Installing
+## Thanks
 
-1. Copy the `PPSA99620` folder to `/data/homebrew/` with an FTP client.
-2. Launch it the way your loader launches native titles (ShadowMountPlus, for
-   example). The first launch needs the console online to download the game
-   data.
+This port stands entirely on other people's work. Thank you to:
 
-Settings, saves and logs go to `/data/ringracers/`, where FTP can reach
-them, when the title can write there, and otherwise to the title's own
-storage. Command line arguments go in `ringracers-args.txt` in the title
-folder (`/data/homebrew/PPSA99620/`).
+- **[Kart Krew Dev](https://www.kartkrew.org/)** for Dr. Robotnik's Ring
+  Racers itself: the game, its code, art and music
+  ([source](https://gitlab.com/kart-krew-dev/ring-racers),
+  [Discord](https://www.kartkrew.org/discord))
+- **[Sonic Team Junior](https://srb2.org/)** for Sonic Robo Blast 2, which
+  Ring Racers grew out of
+- **[Doom Legacy](http://doomlegacy.sourceforge.net/)** and **id Software**
+  for the Doom engine underneath it all
+- **[ps5-payload-dev](https://github.com/ps5-payload-dev)** for the PS5
+  Payload SDK and the [PacBrew](https://github.com/ps5-payload-dev/pacbrew-repo)
+  library ports
+- **[BlackBearReloaded](https://github.com/blackbearreloaded)** for
+  [ps5-opengl](https://github.com/blackbearreloaded/ps5-opengl) and the
+  [native app boilerplate](https://github.com/blackbearreloaded/ps5-native-app-boilerplate)
+  that make a native title with OpenGL possible
+- **[Mesa](https://mesa3d.org/)**, **[curl](https://curl.se/)**,
+  **[OpenSSL](https://www.openssl.org/)**, **[zlib](https://zlib.net/)**,
+  **[libpng](http://www.libpng.org/)** and **[Opus](https://opus-codec.org/)**
+- The authors of **etaHEN** and **ShadowMountPlus**, and the whole PS5 homebrew
+  scene, for opening up the console
+- **SEGA** for Sonic and friends
 
-## Where the port lives
+## Disclaimer
 
-| | |
-|---|---|
-| `src/ps5/` | the platform layer: video (EGL), input, sound, system, paths, threads |
-| `src/ps5/native/` | the title's C runtime: startup, the heap, the linker script |
-| `cmake/ps5/` | the CMake toolchain and the title link |
-| `tools/ps5/` | fetching the SDKs, building, packaging, the home screen art |
-| `docs/PS5.md` | everything above in detail, and how to report a problem |
-
-Changes to upstream's own code are few and each is marked `PS5`, `SRB2_PS5` or
-`PS5_CA_BUNDLE` with a comment saying why.
-
-## About Ring Racers
-
-Dr. Robotnik's Ring Racers is a kart racing game by **Kart Krew**, originally
-based on the 3D Sonic the Hedgehog fangame [Sonic Robo Blast 2](https://srb2.org/),
-itself based on a modified version of [Doom Legacy](http://doomlegacy.sourceforge.net/).
-This tree is upstream's `master` at `4bad15a` (2026-08-31); its home is
-[gitlab.com/kart-krew-dev/ring-racers](https://gitlab.com/kart-krew-dev/ring-racers),
-with a mirror at [KartKrewDev/RingRacers](https://github.com/KartKrewDev/RingRacers).
-The desktop build instructions are upstream's and still apply to this tree.
-
-- [Kart Krew Dev website](https://www.kartkrew.org/)
-- [Kart Krew Dev Discord](https://www.kartkrew.org/discord)
-- [SRB2 forums](https://mb.srb2.org/)
-
-### Disclaimer
-
-Dr. Robotnik's Ring Racers is a work of fan art made available for free without
-intent to profit or harm the intellectual property rights of the original works
-it is based on. Kart Krew Dev is in no way affiliated with SEGA Corporation. We
-do not claim ownership of any of SEGA's intellectual property used in Dr.
-Robotnik's Ring Racers.
+Dr. Robotnik's Ring Racers is a work of fan art made available for free
+without intent to profit or harm the intellectual property rights of the
+original works it is based on. Kart Krew Dev is in no way affiliated with SEGA
+Corporation, and neither this port nor its author is affiliated with Kart Krew
+Dev, SEGA or Sony Interactive Entertainment. No claim is made to any of SEGA's
+intellectual property used in Dr. Robotnik's Ring Racers.
 
 ## Licence
 
@@ -117,3 +128,9 @@ version 2 or later; see [LICENSE](LICENSE) and
 [LICENSE-3RD-PARTY.txt](LICENSE-3RD-PARTY.txt). The PS5 build links components
 under the GPL version 3 or later, so a PS5 binary built from this tree is
 distributed under the GPL version 3 or later as a whole.
+
+---
+
+<p align="center">
+  And a special shoutout to my friend <b>Mark</b>, for introducing me to Ring Racers. 🏁
+</p>
