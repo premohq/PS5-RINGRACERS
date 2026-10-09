@@ -8,7 +8,7 @@ mip: the only form the shell takes, and what the native-app boilerplate's
 tools/validate-assets.sh checks for) into OUTPUT_DIR.
 
 Everything is drawn from art already in this repository - the pixel logo in
-docs/logo.png, the icon in srb2.png and the banner in srb2banner.png - so the
+docs/logo.png, and the icon and banner in tools/ps5/art/ - so the
 result is reproducible and adds no new assets. The logo is scaled by whole
 numbers with nearest-neighbour sampling, so it stays the crisp pixel art it
 is in the game.
@@ -89,13 +89,13 @@ def with_logo(img, scale, cx, cy):
 
 def icon():
     """Robotnik, the game's own icon, over the banner's colours."""
-    banner = Image.open(REPO / "srb2banner.png").convert("RGB")
+    banner = Image.open(REPO / "tools/ps5/art/srb2banner.png").convert("RGB")
     s = 512 / banner.height
     back = banner.resize((round(banner.width * s), 512), Image.BILINEAR)
     x = (back.width - 512) // 2
     back = back.crop((x, 0, x + 512, 512)).filter(ImageFilter.GaussianBlur(10))
     back = ImageEnhance.Brightness(back).enhance(0.6).convert("RGBA")
-    face = Image.open(REPO / "srb2.png").convert("RGBA").resize((512, 512), Image.NEAREST)
+    face = Image.open(REPO / "tools/ps5/art/srb2.png").convert("RGBA").resize((512, 512), Image.NEAREST)
     back.alpha_composite(face)
     return back.convert("RGB")
 
