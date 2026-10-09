@@ -300,8 +300,8 @@ void FB_Render(uint8_t* screen, const fb_view_t* view)
 		const char* reason = view->error && view->error[0] ? view->error : "SOMETHING WENT WRONG";
 		draw_tinted(screen, (UNITS_W - text_width(reason)) / 2, 116, reason, YELLOW);
 		draw_centered(screen, 134, "CLOSE THE GAME AND START IT AGAIN,");
-		draw_centered(screen, 144, "OR COPY BIOS.PK3 AND DATA/ TO");
-		draw_centered(screen, 154, "/DATA/RINGRACERS OVER FTP");
+		draw_centered(screen, 144, "OR COPY BIOS.PK3 AND DATA/ INTO");
+		draw_centered(screen, 154, "THE GAME'S FOLDER OVER FTP");
 	}
 	else
 	{

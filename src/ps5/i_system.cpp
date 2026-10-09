@@ -203,14 +203,26 @@ int32_t I_mkdir(const char* dirname, int32_t unixright)
 	return mkdir(dirname, unixright);
 }
 
+// A title cannot ask for its working directory: getcwd() (libSceLibcInternal)
+// crashes it, and chdir("/app0") fails. So the working directory is the last
+// one I_ChDir reached. While that is not the data directory, IdentifyVersion,
+// the one caller, opens the archives by their absolute paths.
+static char g_cwd[256] = "/";
+
 int32_t I_ChDir(const char* path)
 {
-	return chdir(path);
+	const int32_t ret = chdir(path);
+	if (ret == 0)
+		snprintf(g_cwd, sizeof g_cwd, "%s", path);
+	return ret;
 }
 
 char* I_GetCwd(char* buf, size_t size)
 {
-	return getcwd(buf, size);
+	if (!buf || !size)
+		return NULL;
+	snprintf(buf, size, "%s", g_cwd);
+	return buf;
 }
 
 char* I_GetEnv(const char* name)
@@ -237,7 +249,7 @@ const char* I_LocateWad(void)
 		return NULL;
 	}
 
-	if (chdir(dir) == -1)
+	if (I_ChDir(dir) == -1)
 		I_OutputMsg("Couldn't change working directory to %s\n", dir);
 
 	return dir;

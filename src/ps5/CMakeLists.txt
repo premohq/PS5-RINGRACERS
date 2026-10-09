@@ -44,9 +44,12 @@ target_link_options(SRB2SDL2 PRIVATE
 	# malloc and friends go to native/app_heap.c's direct-memory heap.
 	--wrap=malloc --wrap=calloc --wrap=realloc --wrap=free
 	--wrap=posix_memalign --wrap=malloc_usable_size
-	# Threads made without attributes get a desktop-sized stack; see
+	# Threads made without attributes get a desktop-sized stack, and what a
+	# title's fcntl() and ioctl() refuse has stand-ins; see
 	# native/runtime_shims.c.
 	--wrap=pthread_create
+	--wrap=fcntl --wrap=ioctl
+	--wrap=socket --wrap=accept --wrap=socketpair --wrap=close
 	# Which archive member supplied what, for when an import goes wrong.
 	-Map "${CMAKE_BINARY_DIR}/ringracers.map"
 )

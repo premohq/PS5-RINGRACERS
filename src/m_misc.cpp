@@ -227,6 +227,30 @@ int access(const char *path, int amode)
 }
 #endif
 
+#ifdef SRB2_PS5
+// PS5: access() fails for a title even on files it can open, so the FIL_
+// checks below ask stat() and open() instead.
+#include <fcntl.h>
+#include <sys/stat.h>
+
+static int PS5_Access(const char *path, int amode)
+{
+	struct stat st;
+	if (stat(path, &st) != 0)
+		return -1;
+	if (amode == 0 || S_ISDIR(st.st_mode))
+		return 0;
+
+	const int flags = (amode & 6) == 6 ? O_RDWR : (amode & 2) ? O_WRONLY : O_RDONLY;
+	const int fd = open(path, flags);
+	if (fd < 0)
+		return -1;
+	close(fd);
+	return 0;
+}
+#define access PS5_Access
+#endif
+
 
 //
 // FIL_WriteFile

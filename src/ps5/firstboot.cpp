@@ -21,12 +21,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 #include <mutex>
 #include <thread>
 #include <vector>
-
-#include <sys/stat.h>
 
 #include <curl/curl.h>
 #include <glad/gl.h>
@@ -41,9 +38,6 @@
 namespace
 {
 
-/// Where the data goes: the first place ps5_paths.cpp looks, and one an FTP
-/// client reaches.
-constexpr const char* kInstallDir = "/data/ringracers";
 /// Written by tools/ps5/firstboot_art.py.
 constexpr const char* kArt = "/app0/firstboot.dat";
 
@@ -242,7 +236,14 @@ void PS5_FirstBoot(void)
 	if (PS5_DataDir())
 		return;
 
-	I_OutputMsg("First boot: no game data found; installing it into %s\n", kInstallDir);
+	// Where the data goes: the home directory, which ps5_paths.cpp chose for
+	// being writable. That is /data/ringracers, where an FTP client reaches
+	// it, when the loader lets the title write there, and otherwise the
+	// title's own /download0, which downloadDataSize in param.json makes
+	// big enough for the archive and what it unpacks to.
+	const char* const install_dir = PS5_HomeDir();
+
+	I_OutputMsg("First boot: no game data found; installing it into %s\n", install_dir);
 
 	if (!FB_LoadArt(kArt))
 		I_OutputMsg("[firstboot] %s is missing or damaged; drawing plain shapes\n", kArt);
@@ -257,31 +258,18 @@ void PS5_FirstBoot(void)
 	}
 
 	Shared shared;
-	std::thread worker;
 
-	// The probe in ps5_paths.cpp found out whether the title may write
-	// there; if it may not, the home directory went elsewhere.
-	mkdir(kInstallDir, 0777);
-	if (strcmp(PS5_HomeDir(), kInstallDir) != 0)
-	{
-		I_OutputMsg("[firstboot] %s is not writable\n", kInstallDir);
-		snprintf(shared.error, sizeof shared.error, "COULD NOT WRITE TO /DATA/RINGRACERS");
+	curl_global_init(CURL_GLOBAL_ALL);
+	std::thread worker([&shared, install_dir]() {
+		fb_callbacks_t callbacks = {OnProgress, OnLog, &shared};
+		char error[sizeof shared.error];
+		const int ok = FB_Install(install_dir, kCaBundle, &callbacks, error, sizeof error);
+
+		std::lock_guard<std::mutex> lock(shared.mutex);
+		shared.ok = ok != 0;
+		snprintf(shared.error, sizeof shared.error, "%s", error);
 		shared.finished = true;
-	}
-	else
-	{
-		curl_global_init(CURL_GLOBAL_ALL);
-		worker = std::thread([&shared]() {
-			fb_callbacks_t callbacks = {OnProgress, OnLog, &shared};
-			char error[sizeof shared.error];
-			const int ok = FB_Install(kInstallDir, kCaBundle, &callbacks, error, sizeof error);
-
-			std::lock_guard<std::mutex> lock(shared.mutex);
-			shared.ok = ok != 0;
-			snprintf(shared.error, sizeof shared.error, "%s", error);
-			shared.finished = true;
-		});
-	}
+	});
 
 	std::vector<uint8_t> screen(static_cast<size_t>(FB_SCREEN_W) * FB_SCREEN_H * 4);
 	fb_view_t view = {};
@@ -318,11 +306,8 @@ void PS5_FirstBoot(void)
 		show();
 	}
 
-	if (worker.joinable())
-	{
-		worker.join();
-		curl_global_cleanup();
-	}
+	worker.join();
+	curl_global_cleanup();
 
 	if (shared.ok)
 	{

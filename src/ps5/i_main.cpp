@@ -19,6 +19,7 @@
 /// player who wants more (-server, -connect, -warp, -skipintro...) writes
 /// them into a text file the game reads at startup.
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -167,10 +168,15 @@ int main(int argc, char** argv)
 			args.push_back(argv[i]);
 	}
 
-	for (const char* dir : {PS5_DataDir(), PS5_HomeDir()})
+	// Also the title folder, which an FTP client reaches whichever loader
+	// started the title, as /data/homebrew/<title ID>.
+	std::vector<std::string> read;
+	for (const char* dir : {PS5_DataDir(), PS5_HomeDir(), "/app0"})
 	{
-		if (dir && *dir)
-			ReadArgsFile((std::string(dir) + "/" PS5_ARGS_FILE).c_str(), args);
+		if (!dir || !*dir || std::find(read.begin(), read.end(), dir) != read.end())
+			continue;
+		read.push_back(dir);
+		ReadArgsFile((std::string(dir) + "/" PS5_ARGS_FILE).c_str(), args);
 	}
 
 	if (!HasArg(args, "-home"))

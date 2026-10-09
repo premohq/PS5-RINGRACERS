@@ -18,8 +18,8 @@
 /// for everything, plus the legacy OpenGL renderer when it is selected.
 ///
 /// What a console changes is the window. There is one surface, the size of
-/// the display mode picked at startup (1080p unless the player asks for
-/// 1440p or 4K, see ParseDisplayMode), and it never moves or resizes. The
+/// the display mode picked at startup (4K unless the player asks for 1080p
+/// or 1440p, see ParseDisplayMode), and it never moves or resizes. The
 /// game's resolution setting still works: it sets the size the game renders
 /// at, and the RHI scales that to the surface, which is what the PC build
 /// does in fullscreen too.
@@ -68,7 +68,7 @@
 
 using namespace srb2;
 
-#define MAXWINMODES (19)
+#define MAXWINMODES (21)
 
 static char vidModeName[33][32];
 
@@ -95,10 +95,13 @@ static int g_swap_interval = -1;
 static std::unique_ptr<rhi::Rhi> g_rhi;
 static uint32_t g_rhi_generation = 0;
 
-// The same list as the PC build, so the resolution menu and saved configs
-// mean the same thing on both.
+// The PC build's list, so the resolution menu and saved configs mean the same
+// thing on both, under the console's two larger display modes, which the
+// engine renders at here (MAXVIDWIDTH and MAXVIDHEIGHT in screen.h).
 static int32_t windowedModes[MAXWINMODES][2] =
 {
+	{3840,2160}, // 1.66
+	{2560,1440}, // 1.66
 	{1920,1200}, // 1.60,6.00
 	{1920,1080}, // 1.66
 	{1680,1050}, // 1.60,5.25
@@ -159,26 +162,28 @@ static rhi::GlProc PS5_GLLoad(const char* name)
 ///
 /// ps5-opengl can only change the mode while EGL is down, and every GL object
 /// is lost when it does, so this is chosen once, at startup, and not offered
-/// in the video menu. 1080p is the default because the game's own maximum
-/// render resolution is 1920x1200: a 4K surface only adds a scaling pass.
+/// in the video menu. 4K is the default: the console scales what it is given
+/// to the TV's own mode, so a 4K surface is shown as it is on a 4K TV and
+/// downsampled on a 1080p one, and the video menu's resolutions, up to
+/// 3840x2160, all fit in it.
 static void ParseDisplayMode(EGLint* width, EGLint* height, EGLint* hz)
 {
-	*width = 1920;
-	*height = 1080;
+	*width = 3840;
+	*height = 2160;
 	*hz = 60;
 
 	if (M_CheckParm("-ps5res") && M_IsNextParm())
 	{
 		const int lines = atoi(M_GetNextParm());
-		if (lines == 1440)
+		if (lines == 1080)
+		{
+			*width = 1920;
+			*height = 1080;
+		}
+		else if (lines == 1440)
 		{
 			*width = 2560;
 			*height = 1440;
-		}
-		else if (lines == 2160)
-		{
-			*width = 3840;
-			*height = 2160;
 		}
 	}
 

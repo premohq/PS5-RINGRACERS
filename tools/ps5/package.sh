@@ -8,7 +8,8 @@
 # with your homebrew loader; see docs/PS5.md.
 #
 # The title leaves out the game data, bios.pk3 and data/. On its first boot
-# it downloads Kart Krew's 2.4 release into /data/ringracers itself, with a
+# it downloads Kart Krew's 2.4 release itself, into /data/ringracers when the
+# loader lets it write there and into its own /download0 otherwise, with a
 # screen of its own (src/ps5/firstboot.cpp); that screen's art, firstboot.dat,
 # takes the game's font from the same release (tools/ps5/game-data.sh),
 # which the build therefore fetches either way. --bundle-data puts that
@@ -111,7 +112,13 @@ printf '==> [ps5] drawing the first boot screen\n'
 if (( bundle_assets )); then
 	printf '==> [ps5] copying the game data from %s\n' "$assets"
 	cp "$assets/bios.pk3" "$app/"
-	cp -r "$assets/data" "$app/"
+	# Under the lower-case names the game asks for (src/d_main.cpp): some in
+	# the release are not, and the console's file system minds.
+	mkdir -p "$app/data"
+	for file in "$assets"/data/*; do
+		name=$(basename "$file")
+		cp "$file" "$app/data/${name,,}"
+	done
 fi
 
 # The console only starts a title whose files are open to everyone; ps5-opengl

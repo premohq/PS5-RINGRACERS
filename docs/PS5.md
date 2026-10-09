@@ -8,10 +8,10 @@ produces a PS5 title folder.
 **It is not affiliated with Kart Krew.** Please do not report problems with this
 build to them.
 
-**It has not yet been run on a console.** Everything here builds, links and is
-converted into a signed title folder, and each piece of it follows a PS5
-project that has run on hardware, but the game itself is untested on a PS5.
-Treat the first runs as testing, and see "When it does not work" below.
+**It has run on one console so far**: firmware 13.60, with etaHEN and
+ShadowMountPlus, where it starts, finds its data and plays. Most of "First
+console test" below has not been checked yet, so treat it as testing, and see
+"When it does not work" below.
 
 ## What it is built from
 
@@ -29,8 +29,8 @@ Treat the first runs as testing, and see "When it does not work" below.
 |---|---|---|
 | Software renderer | yes | the PC default |
 | Legacy OpenGL renderer | yes | needs ps5-opengl's compatibility profile, which it supports but has not conformance-tested |
-| Resolution setting | yes | renders at the chosen size, scaled to the screen |
-| 1080p / 1440p / 4K output, 60 / 120 Hz | yes | chosen at startup, see "Display mode" |
+| Resolution setting | yes, up to 3840x2160 | renders at the chosen size, scaled to the screen; the PC list plus 2560x1440 and 3840x2160 |
+| 1080p / 1440p / 4K output, 60 / 120 Hz | yes | 4K unless chosen otherwise at startup, see "Command line arguments" |
 | Controllers | DualSense, up to 4 | one per signed-in user; rumble; the light bar shows your colour |
 | Splitscreen | up to 4 | sign in a user for each controller |
 | Sound effects and music | yes | the PC mixer, resampled to the console's 48 kHz |
@@ -140,9 +140,13 @@ with an FTP client, then launch it the way your loader launches native titles.
 
 The game looks for `bios.pk3` and `data/` in these places, in order:
 
-1. `/data/ringracers/`, where the first boot puts them
-2. the title folder itself (`/app0`), with `--bundle-data` or `--assets`
+1. `/data/ringracers/`, where the first boot puts them when the title can
+   write there
+2. the title folder itself (`/app0`), with `--bundle-data` or `--assets`, or
+   uploaded into it over FTP
 3. `/mnt/usb0/ringracers/`, `/mnt/usb1/ringracers/`, `/mnt/ext0/ringracers/`
+4. `/download0`, the title's own storage, where the first boot puts them
+   otherwise
 
 ### The first boot
 
@@ -152,21 +156,30 @@ progress bar, and the game's console font, with `@premohq` in the bottom left
 corner. It goes through three steps, each of which a restart resumes:
 
 1. **Downloading** the 750 MB archive from Kart Krew's GitHub release into
-   `/data/ringracers/`, as a `.part` file that the next start carries on from.
+   the home directory (see "Where your files go"), as a `.part` file that the
+   next start carries on from.
 2. **Checking** it against the SHA-256 pinned in `src/ps5/firstboot.h` (the
    same as `tools/ps5/game-data.sh`).
-3. **Unpacking** `bios.pk3` and `data/` next to it, checking each file's CRC,
-   then deleting the archive. `bios.pk3` is written last, so a half-finished
-   install never looks like a finished one.
+3. **Unpacking** `bios.pk3` and `data/` next to it, under the lower-case
+   names the game asks for, checking each file's CRC, then deleting the
+   archive. `bios.pk3` is written last, so a half-finished install never
+   looks like a finished one.
 
 Then the game's own startup and loading screen take over, as on every later
 start, which never sees the first boot screen again. It needs about 1.5 GB
-free while it works, and 760 MB after.
+free while it works, and 760 MB after. In `/download0` that space comes out
+of the 3 GiB the title asks the console for (`downloadDataSize` in
+`tools/ps5/sce_sys/param.json`); a console that already made a smaller
+`/download0` for an earlier build keeps it, so there, delete the title's
+`/user/download/PPSA99620/download0.dat` (which loses the saves in it) or
+copy the data in by hand.
 
 If it cannot finish (no connection, the console out of space, a damaged
 download), the screen says why and stays up until you close the game; start
-it again to retry. The log has the details. Copying `bios.pk3` and `data/` to
-`/data/ringracers/` over FTP does the same job by hand.
+it again to retry. The log has the details. Copying `bios.pk3` and `data/`
+into the title folder over FTP does the same job by hand; name the files in
+`data/` in lower case (`textures_general.pk3`, not `textures_General.pk3`),
+as the console's file system tells the two apart.
 
 ### Where your files go
 
@@ -176,13 +189,15 @@ profiles, replays, screenshots, add-ons and `latest-log.txt` lives, is
 title's own storage. Only the first can be reached over FTP. The game creates
 `/data/ringracers` on startup if it is missing, so this holds even when the
 game data is bundled into the title. Whether a title can write to `/data`
-depends on the loader; check the log (below) to see which one was used.
+depends on the loader: a title started by ShadowMountPlus on firmware 13.60
+cannot. The log (below) says which one was used.
 
 ## Command line arguments
 
 A title starts with no command line. To pass the game arguments, put them in a
-text file named `ringracers-args.txt` in `/data/ringracers/` (or the home
-directory), one or more per line, `#` for comments:
+text file named `ringracers-args.txt` in the title folder
+(`/data/homebrew/PPSA99620/` over FTP), the data directory or the home
+directory, one or more per line, `#` for comments:
 
 ```
 # join a friend's game as soon as the game starts
@@ -191,7 +206,8 @@ directory), one or more per line, `#` for comments:
 
 Two arguments exist only on PS5:
 
-* `-ps5res 1080|1440|2160` picks the output resolution (default 1080).
+* `-ps5res 1080|1440|2160` picks the output resolution (default 2160). The
+  console scales it to whatever the TV shows, so 4K suits a 1080p TV too.
 * `-ps5hz 60|120` picks the refresh rate (default 60). A TV that cannot do
   120 Hz stays at 60.
 
@@ -265,7 +281,7 @@ with `ringracers-stdout.txt` and `.ringracers/latest-log.txt` from
    second controller and start a splitscreen race.
 11. **Online.** Open the server browser; host a game and join it from a PC
     running the same build (2.4 servers are not listed, see above).
-12. **Display modes.** `-ps5res 2160` and `-ps5hz 120` in the arguments file;
+12. **Display modes.** `-ps5res 1080` and `-ps5hz 120` in the arguments file;
     `vid_info` in the console shows what the TV accepted.
 13. **USB keyboard**, if you have one: the console (the key above Tab) and chat.
 
@@ -303,6 +319,19 @@ Some details that cost time and are worth knowing before changing anything:
 * C++ exceptions work because the linker script defines `__eh_frame_start` and
   friends: the SDK's libunwind finds unwind tables through them rather than a
   dynamic loader.
+* A title cannot use every POSIX call it can link. `getcwd()`, which comes
+  from `libSceLibcInternal`, crashes the title on its first call; `access()`
+  fails even on files it can open; `chdir("/app0")` fails. `stat()`,
+  `open()` and `fopen()` work. So `I_GetCwd` and `I_ChDir` keep a working
+  directory of their own, and `m_misc.cpp`'s `FIL_` checks ask `stat()` and
+  `open()` (both marked `SRB2_PS5`).
+* The crash handler catches a crash and then exits, and it is that exit the
+  kernel log reports, as signal 12 (`SIGSYS`); the line the handler prints
+  just before, `Process killed by signal: ...`, names the real one.
+* The console's file system tells upper and lower case apart, and the game
+  asks for `data/textures_general.pk3` where Kart Krew's archive has
+  `textures_General.pk3`. The desktop builds fall back to a case-blind
+  search; here the first boot and `--bundle-data` write lower-case names.
 
 ## Licence
 

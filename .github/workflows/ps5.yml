@@ -50,3 +50,44 @@ jobs:
             build/ps5/dist/
             !build/ps5/dist/*.zip
           if-no-files-found: error
+
+      # For a release, package.sh's zip itself: it keeps the 0777 permissions
+      # the console wants, which an artifact's own zip does not.
+      - name: Upload the release zip
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-zip
+          path: build/ps5/dist/PPSA99620.zip
+          if-no-files-found: error
+
+  # A tag starting with v (v2.5-ps5.1, say) publishes that build as a GitHub
+  # release, with the title zipped for players to download.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-zip
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'EOF'
+          Dr. Robotnik's Ring Racers for jailbroken PS5 consoles, as a native title.
+
+          1. Unzip `PPSA99620.zip` and copy the `PPSA99620` folder to `/data/homebrew/` with an FTP client.
+          2. Launch it the way your loader launches native titles (ShadowMountPlus, for example).
+          3. The first launch downloads the game data (750 MB) from Kart Krew's Ring Racers 2.4 release, so the console needs to be online. Every launch after that goes straight to the game.
+
+          Renders at up to 3840x2160 and outputs 4K by default. This build is Ring Racers 2.5 (upstream `master`), so it cannot join public 2.4 servers. Not affiliated with Kart Krew: please report problems here, not to them. See docs/PS5.md for options and troubleshooting.
+          EOF
+          gh release create "$GITHUB_REF_NAME" PPSA99620.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Ring Racers for PS5 $GITHUB_REF_NAME" \
+            --notes-file notes.md

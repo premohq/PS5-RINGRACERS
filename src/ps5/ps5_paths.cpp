@@ -40,13 +40,15 @@ bool g_initialised = false;
 /// game's archives on the console's storage and update the title without
 /// re-uploading 700 MB. /app0 is where tools/ps5/package.sh puts them when
 /// asked to bundle them. The USB paths are where payload-era homebrew finds
-/// external drives.
+/// external drives. /download0 is where the first boot installs them when the
+/// title cannot write to /data.
 const char* const kDataCandidates[] = {
 	"/data/ringracers",
 	"/app0",
 	"/mnt/usb0/ringracers",
 	"/mnt/usb1/ringracers",
 	"/mnt/ext0/ringracers",
+	"/download0",
 };
 
 /// Writable homes, in order. /download0 is the title's own volume and the
@@ -98,6 +100,10 @@ void PS5_InitPaths(void)
 			break;
 		}
 	}
+
+	// The probe needs the folder to be there; where the title may not write,
+	// this fails and the probe moves on.
+	mkdir(kHomeCandidates[0], 0777);
 
 	for (const char* dir : kHomeCandidates)
 	{

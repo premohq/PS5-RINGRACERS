@@ -13,11 +13,10 @@ home screen.
 **It is not affiliated with Kart Krew.** Please do not report problems with this
 port to them.
 
-**It has not been run on a console yet.** It builds, links, converts and signs
-into a title folder, and every piece follows a PS5 project that has run on
-hardware, but the game itself is untested on a PS5. The first runs are the
-test: [docs/PS5.md](docs/PS5.md#first-console-test) has a checklist and says
-what to send back.
+**It has run on one console so far** (firmware 13.60, etaHEN,
+ShadowMountPlus), where it starts, finds its data and plays. Most of the
+checklist in [docs/PS5.md](docs/PS5.md#first-console-test) has not been
+checked yet; it says what to send back if something goes wrong.
 
 ## What it does
 
@@ -25,7 +24,8 @@ The game is upstream Ring Racers, unchanged except for a platform layer in
 place of SDL (`src/ps5/`). So both renderers, the sound mixer, netplay, add-ons,
 replays and profiles are the PC version's.
 
-* 1080p, 1440p or 4K output at 60 or 120 Hz
+* Up to 4K: the game renders at up to 3840x2160 and outputs 4K by default
+  (or 1080p or 1440p), at 60 or 120 Hz
 * DualSense controllers, up to four for splitscreen, with rumble and light bar
 * Online play with other copies of this build (not with public 2.4 servers;
   [why](docs/PS5.md#online-play-and-versions))
@@ -36,9 +36,10 @@ replays and profiles are the PC version's.
 ## The first boot downloads the game data
 
 The title is about 60 MB. The first time it starts, it downloads the game's
-`bios.pk3` and `data/` (750 MB) from Kart Krew's own Ring Racers 2.4 release
-into `/data/ringracers/`, checks them against a pinned SHA-256 and unpacks
-them, on a screen of its own in the game's font. Every start after that goes
+`bios.pk3` and `data/` (750 MB) from Kart Krew's own Ring Racers 2.4 release,
+checks them against a pinned SHA-256 and unpacks them, on a screen of its own
+in the game's font. They go to `/data/ringracers/` when your loader lets the
+title write there, and otherwise to the title's own storage. Every start after that goes
 straight to the game. An interrupted download picks up where it stopped on
 the next start.
 
@@ -70,7 +71,9 @@ put the game data in the title, for a console that is not online.
    data.
 
 Settings, saves and logs go to `/data/ringracers/`, where FTP can reach
-them. Command line arguments go in `/data/ringracers/ringracers-args.txt`.
+them, when the title can write there, and otherwise to the title's own
+storage. Command line arguments go in `ringracers-args.txt` in the title
+folder (`/data/homebrew/PPSA99620/`).
 
 ## Where the port lives
 

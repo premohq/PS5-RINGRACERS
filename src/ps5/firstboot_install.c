@@ -16,6 +16,7 @@
 /// matches, data/ first and bios.pk3 last: ps5_paths.cpp takes a folder
 /// with bios.pk3 in it as installed, so it never sees half an install.
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -23,7 +24,9 @@
 #include <string.h>
 #include <time.h>
 
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <curl/curl.h>
@@ -289,6 +292,22 @@ static int fb_xferinfo(void* user, curl_off_t dltotal, curl_off_t dlnow, curl_of
 	return 0;
 }
 
+/// Whatever runtime_shims.c's SO_NBIO stand-in manages, no read or write on
+/// the download's sockets blocks for more than a few seconds: curl's close
+/// once waited minutes in a read for a TLS goodbye the server never sent.
+/// curl treats a timed-out read as "nothing yet" and goes on to its own
+/// timeouts, which a blocking socket otherwise keeps it from reaching.
+static int fb_sockopt(void* user, curl_socket_t fd, curlsocktype purpose)
+{
+	struct timeval limit = { 5, 0 };
+
+	(void)user;
+	(void)purpose;
+	setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &limit, sizeof limit);
+	setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &limit, sizeof limit);
+	return CURL_SOCKOPT_OK;
+}
+
 typedef enum
 {
 	FB_GET_OK,
@@ -329,6 +348,9 @@ static fb_get_t fb_get(fb_ctx_t* ctx, const char* part, const char* ca_bundle)
 	}
 
 	curl_easy_setopt(curl, CURLOPT_URL, FB_DATA_URL);
+	// HTTP/1.1: one file needs nothing more, and it is what has been run on
+	// a console.
+	curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, (long)CURL_HTTP_VERSION_1_1);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, "RingRacers-PS5-firstboot");
@@ -339,6 +361,7 @@ static fb_get_t fb_get(fb_ctx_t* ctx, const char* part, const char* ca_bundle)
 	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, fb_xferinfo);
 	curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &d);
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
+	curl_easy_setopt(curl, CURLOPT_SOCKOPTFUNCTION, fb_sockopt);
 	// Give up on a connection that has stalled for a minute; the next
 	// attempt resumes.
 	curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1024L);
@@ -712,6 +735,15 @@ done:
 	return ok;
 }
 
+/// The game asks for its archives by lower-case names (d_main.cpp), and some
+/// in Kart Krew's archive are not (data/textures_General.pk3). A desktop's
+/// file system does not mind; the console's does.
+static void fb_lower(char* s)
+{
+	for (; *s; s++)
+		*s = (char)tolower((unsigned char)*s);
+}
+
 static int fb_extract(fb_ctx_t* ctx, const char* zip_path, const char* dir)
 {
 	FILE* zip = fopen(zip_path, "rb");
@@ -738,6 +770,7 @@ static int fb_extract(fb_ctx_t* ctx, const char* zip_path, const char* dir)
 	for (i = 0; i < count; i++)
 	{
 		snprintf(path, sizeof path, "%s/%s", dir, entries[i].name);
+		fb_lower(path + strlen(dir) + 1);
 		fb_log(ctx, "unpacking %s (%u bytes)", entries[i].name, entries[i].size);
 		if (!fb_unpack(ctx, zip, &entries[i], path, &done, total))
 		{
