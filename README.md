@@ -111,6 +111,8 @@ This port stands entirely on other people's work. Thank you to:
 - The authors of **etaHEN** and **ShadowMountPlus**, and the whole PS5 homebrew
   scene, for opening up the console
 - **SEGA** for Sonic and friends
+- And a special shoutout to my friend **Mark**, for introducing me to Ring
+  Racers. 🏁
 
 ## Disclaimer
 
@@ -128,9 +130,3 @@ version 2 or later; see [LICENSE](LICENSE) and
 [LICENSE-3RD-PARTY.txt](LICENSE-3RD-PARTY.txt). The PS5 build links components
 under the GPL version 3 or later, so a PS5 binary built from this tree is
 distributed under the GPL version 3 or later as a whole.
-
----
-
-<p align="center">
-  And a special shoutout to my friend <b>Mark</b>, for introducing me to Ring Racers. 🏁
-</p>
