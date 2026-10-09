@@ -16,6 +16,12 @@
 extern "C" {
 #endif
 
+/// Bring up EGL at the display mode the command line asks for, unless it is
+/// up already, so that the first boot screen (firstboot.cpp) and the game
+/// share one display and context: ps5-opengl cannot take the display down
+/// and up again without losing every texture.
+int PS5_VideoStart(void);
+
 /// Present the back buffer.
 void PS5_VideoPresent(void);
 

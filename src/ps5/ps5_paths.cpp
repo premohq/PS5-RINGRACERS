@@ -116,6 +116,14 @@ void PS5_InitPaths(void)
 	PS5_DebugPrint(line);
 }
 
+void PS5_RescanPaths(void)
+{
+	g_initialised = false;
+	g_data_dir[0] = '\0';
+	g_home_dir[0] = '\0';
+	PS5_InitPaths();
+}
+
 const char* PS5_DataDir(void)
 {
 	return g_data_dir[0] ? g_data_dir : nullptr;

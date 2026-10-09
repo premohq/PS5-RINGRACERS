@@ -38,9 +38,10 @@ static const char *const ps5_stdout_logs[] = {
 
 __attribute__((constructor)) static void ps5_open_log(void)
 {
-	// A player who bundled the game data into the title (--assets) has no
-	// reason to have made this folder, and without it the log and the saves
-	// land in /download0, out of FTP's reach. Where /data is not writable
+	// The first boot installs the game data here, and a player who bundled
+	// it into the title (--bundle-data) has no reason to have made this
+	// folder; without it the log and the saves land in /download0, out of
+	// FTP's reach. Where /data is not writable
 	// this fails and changes nothing; ps5_paths.cpp probes it again.
 	mkdir("/data/ringracers", 0777);
 

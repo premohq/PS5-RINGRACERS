@@ -5,6 +5,9 @@
 target_sources(SRB2SDL2 PRIVATE
 	i_main.cpp
 	i_system.cpp
+	firstboot.cpp
+	firstboot_install.c
+	firstboot_screen.c
 	i_video.cpp
 	i_input.cpp
 	i_keyboard.cpp

@@ -23,6 +23,9 @@ extern "C" {
 /// Decide both directories. Safe to call more than once.
 void PS5_InitPaths(void);
 
+/// Decide them again, after the first boot has installed the game data.
+void PS5_RescanPaths(void);
+
 /// The directory holding bios.pk3 and data/, or NULL if none was found.
 const char *PS5_DataDir(void);
 

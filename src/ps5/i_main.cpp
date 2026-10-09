@@ -36,6 +36,7 @@
 #include "../i_system.h"
 #include "../core/string.h"
 
+#include "firstboot.h"
 #include "ps5_sys.h"
 #include "ps5_paths.h"
 
@@ -154,9 +155,6 @@ static bool HasArg(const std::vector<std::string>& args, const char* name)
 
 int main(int argc, char** argv)
 {
-	// The splash screen stays up until the title says otherwise.
-	sceSystemServiceHideSplashScreen();
-
 	PS5_InitPaths();
 
 	// Arguments: whatever the loader passed, then the player's file, then
@@ -191,6 +189,14 @@ int main(int argc, char** argv)
 
 	InitLogging();
 	I_StartupSystem();
+
+	// The launch screen stays up until the title says otherwise. On the
+	// first boot, with no game data anywhere, the screen that downloads it
+	// takes over from the launch screen once it has a frame to show; on
+	// every other boot the launch screen goes now, as it always has.
+	if (!PS5_DataDir())
+		PS5_FirstBoot();
+	sceSystemServiceHideSplashScreen();
 
 	try
 	{

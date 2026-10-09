@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 # Turn build/ps5/ringracers.elf into a PS5 title folder.
 #
-#   tools/ps5/package.sh [--assets /path/to/RingRacers | --no-assets]
+#   tools/ps5/package.sh [--bundle-data | --assets /path/to/RingRacers]
 #
 # Output: build/ps5/dist/PPSA99620/ and build/ps5/dist/PPSA99620.zip. Upload
 # the folder (not the zip) to /data/homebrew/ on the console and launch it
 # with your homebrew loader; see docs/PS5.md.
 #
-# The title carries bios.pk3 and data/, so it runs with nothing else on the
-# console: Kart Krew's 2.4 release (tools/ps5/game-data.sh) unless --assets
-# names a Ring Racers install to copy them from. --no-assets leaves them out,
-# and the game looks for them in /data/ringracers (src/ps5/ps5_paths.cpp).
+# The title leaves out the game data, bios.pk3 and data/. On its first boot
+# it downloads Kart Krew's 2.4 release into /data/ringracers itself, with a
+# screen of its own (src/ps5/firstboot.cpp); that screen's art, firstboot.dat,
+# takes the game's font from the same release (tools/ps5/game-data.sh),
+# which the build therefore fetches either way. --bundle-data puts that
+# release's data in the title instead, for a console that is not online;
+# --assets copies it from a Ring Racers install. Either way the first boot
+# finds the data and never shows.
 #
 # The steps are those of the native-app boilerplate's tools/build.sh, after
 # its link: convert the LLVM ELF into a PS5 module, sign it as a development
@@ -21,13 +25,13 @@ set -euo pipefail
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
 build=${PS5_BUILD_DIR:-"$repo/build/ps5"}
 assets=""
-bundle_assets=1
+bundle_assets=0
 
 while (( $# > 0 )); do
 	case "$1" in
+		--bundle-data) assets=""; bundle_assets=1; shift ;;
 		--assets) assets=${2:?--assets needs a directory}; bundle_assets=1; shift 2 ;;
-		--no-assets) assets=""; bundle_assets=0; shift ;;
-		*) echo "usage: $0 [--assets /path/to/RingRacers | --no-assets]" >&2; exit 2 ;;
+		*) echo "usage: $0 [--bundle-data | --assets /path/to/RingRacers]" >&2; exit 2 ;;
 	esac
 done
 
@@ -92,15 +96,19 @@ cp "$PS5_PAYLOAD_SDK/target/user/homebrew/etc/ca-bundle.crt" "$app/ca-bundle.crt
 
 "$tool" self --inspect --file "$app/eboot.bin"
 
-if (( bundle_assets )) && [[ -z $assets ]]; then
+if [[ -z $assets ]]; then
 	# A plain assignment, so that a failure in game-data.sh stops this script.
 	assets=$("$repo/tools/ps5/game-data.sh")
 fi
+[[ -f $assets/bios.pk3 && -f $assets/data/gfx.pk3 ]] || {
+	echo "$assets does not hold bios.pk3 and data/" >&2
+	exit 2
+}
+
+printf '==> [ps5] drawing the first boot screen\n'
+"$PS5_PYTHON" "$repo/tools/ps5/firstboot_art.py" "$app/firstboot.dat" "$assets"
+
 if (( bundle_assets )); then
-	[[ -f $assets/bios.pk3 && -d $assets/data ]] || {
-		echo "$assets does not hold bios.pk3 and data/" >&2
-		exit 2
-	}
 	printf '==> [ps5] copying the game data from %s\n' "$assets"
 	cp "$assets/bios.pk3" "$app/"
 	cp -r "$assets/data" "$app/"

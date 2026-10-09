@@ -290,6 +290,13 @@ static bool InitEGL(void)
 	return true;
 }
 
+int PS5_VideoStart(void)
+{
+	if (g_display != EGL_NO_DISPLAY && g_context != EGL_NO_CONTEXT)
+		return 1;
+	return InitEGL() ? 1 : 0;
+}
+
 /// The display accepts or refuses 120 Hz only once a frame has been presented
 /// (ps5-opengl's docs/display-modes.md); until then eglGetDisplayModePS5
 /// reports the rate asked for. Asked again after the first present, so a TV
@@ -610,7 +617,7 @@ void I_StartupGraphics(void)
 	if (chosenrendermode != render_none)
 		rendermode = chosenrendermode;
 
-	if (!InitEGL())
+	if (!PS5_VideoStart())
 		I_Error("Could not start OpenGL on this console.\nSee ringracers-stdout.txt for details.");
 
 	CreateRhi();

@@ -54,8 +54,8 @@ with other consoles running this build, and with PC players running a build of
 the same upstream commit.
 
 The game data is the same for both: `master` checks for exactly the archives
-2.4 ships (the hashes in `src/d_main.cpp` are identical), so the build bundles
-2.4's data.
+2.4 ships (the hashes in `src/d_main.cpp` are identical), so the first boot
+downloads 2.4's data.
 
 To host, forward UDP port 5029 to the console, as on PC.
 
@@ -78,8 +78,8 @@ sudo apt install clang-18 lld-18 libclang-rt-18-dev cmake ninja-build python3 py
 Every push is built by GitHub Actions (`.github/workflows/ps5.yml`).
 Open the repository's **Actions** tab, pick the latest green **PS5 build** run,
 and download the `PPSA99620` artifact at the bottom of its page. Unzipped, it
-is the title folder described below, game data included (about 820 MB), ready
-to copy to the console (see "Installing").
+is the title folder described below (about 60 MB), ready to copy to the
+console (see "Installing"). It downloads the game data on its first boot.
 
 On a fork, GitHub leaves workflows off until someone presses **I understand
 my workflows, go ahead and enable them** on the Actions tab; the **Run
@@ -101,8 +101,9 @@ build/ps5/dist/PPSA99620/
     sce_module/libc.prx
     sce_sys/param.json  icon0.png  pic0.dds  pic1.dds
     ca-bundle.crt
-    bios.pk3            <- unless --no-assets
-    data/               <- unless --no-assets
+    firstboot.dat       <- the first boot screen's art
+    bios.pk3            <- with --bundle-data or --assets
+    data/               <- with --bundle-data or --assets
 ```
 
 and `build/ps5/dist/PPSA99620.zip`, the same folder zipped.
@@ -114,15 +115,17 @@ selected tile, and the logo centred for the launch screen. To use your own,
 put `icon0.png` (512x512), `pic0.dds` and `pic1.dds` (3840x2160, BC7) in
 `tools/ps5/sce_sys/`.
 
-The title carries `bios.pk3` and `data/` so it runs with nothing else on the
-console. They come from the archive Kart Krew attach to their
-[v2.4 release](https://github.com/KartKrewDev/RingRacers/releases/tag/v2.4)
-for packagers (Flathub bundles the same file), fetched by
-`tools/ps5/game-data.sh` and checked against a pinned SHA-256. They are not
-committed to this repository: `music.pk3` alone is 313 MB, over GitHub's
-100 MB limit for a file. `--assets ~/RingRacers` copies them from a Ring
-Racers install instead, and `--no-assets` leaves them out to keep the title
-small when the game data is already on the console (see below).
+The game data, `bios.pk3` and `data/`, is the archive Kart Krew attach to
+their [v2.4 release](https://github.com/KartKrewDev/RingRacers/releases/tag/v2.4)
+for packagers (Flathub bundles the same file). It is not committed to this
+repository: `music.pk3` alone is 313 MB, over GitHub's 100 MB limit for a
+file. The title downloads it on its first boot (see "The first boot" below).
+The build fetches it too, with `tools/ps5/game-data.sh`, because the first
+boot screen is written in the game's own font: `tools/ps5/firstboot_art.py`
+takes those few glyphs from it, with the launch screen's track and logo, into
+`firstboot.dat`. `--bundle-data` puts the whole of it in the title instead,
+for a console that is not online (about 820 MB), and `--assets ~/RingRacers`
+copies it from a Ring Racers install.
 
 The pieces can also be run on their own: `tools/ps5/deps.sh` fetches and
 prepares the toolchain and prints where it put it; `tools/ps5/game-data.sh`
@@ -137,12 +140,33 @@ with an FTP client, then launch it the way your loader launches native titles.
 
 The game looks for `bios.pk3` and `data/` in these places, in order:
 
-1. `/data/ringracers/`
-2. the title folder itself (`/app0`), where the build puts them
+1. `/data/ringracers/`, where the first boot puts them
+2. the title folder itself (`/app0`), with `--bundle-data` or `--assets`
 3. `/mnt/usb0/ringracers/`, `/mnt/usb1/ringracers/`, `/mnt/ext0/ringracers/`
 
-Copy them to `/data/ringracers/` once and build with `--no-assets`, and a new
-build of the title is a 60 MB upload instead of 820 MB.
+### The first boot
+
+When the game finds them in none of those places, it downloads them before
+it starts, on a screen of its own: the launch screen's track and logo, a
+progress bar, and the game's console font, with `@premohq` in the bottom left
+corner. It goes through three steps, each of which a restart resumes:
+
+1. **Downloading** the 750 MB archive from Kart Krew's GitHub release into
+   `/data/ringracers/`, as a `.part` file that the next start carries on from.
+2. **Checking** it against the SHA-256 pinned in `src/ps5/firstboot.h` (the
+   same as `tools/ps5/game-data.sh`).
+3. **Unpacking** `bios.pk3` and `data/` next to it, checking each file's CRC,
+   then deleting the archive. `bios.pk3` is written last, so a half-finished
+   install never looks like a finished one.
+
+Then the game's own startup and loading screen take over, as on every later
+start, which never sees the first boot screen again. It needs about 1.5 GB
+free while it works, and 760 MB after.
+
+If it cannot finish (no connection, the console out of space, a damaged
+download), the screen says why and stays up until you close the game; start
+it again to retry. The log has the details. Copying `bios.pk3` and `data/` to
+`/data/ringracers/` over FTP does the same job by hand.
 
 ### Where your files go
 
@@ -219,31 +243,37 @@ with `ringracers-stdout.txt` and `.ringracers/latest-log.txt` from
 
 1. **It launches.** The tile shows the Ring Racers art; starting it gets past
    the PS5 splash screen. If it goes straight back to the home screen, check
-   for a notification first: it names a missing `bios.pk3` or the error.
-2. **The title screen draws**, with the software renderer (the default).
-3. **The controller works** in the menus: d-pad and stick move, Cross
+   for a notification first: it names the error.
+2. **The first boot downloads the game data**, with the console online: the
+   track and logo, "DOWNLOADING THE GAME FILES", a bar that fills, and
+   `@premohq` bottom left. Then "CHECKING" and "UNPACKING", a second of
+   "READY!", and the game's own loading screen. Close the game halfway
+   through once and start it again: it should carry on from where it was.
+   If it shows an error instead, note the yellow line.
+3. **The title screen draws**, with the software renderer (the default).
+4. **The controller works** in the menus: d-pad and stick move, Cross
    confirms, Circle goes back.
-4. **Sound and music play** on the title screen and in the menus.
-5. **A race runs.** Start Time Attack or a Grand Prix and finish a lap. Note
+5. **Sound and music play** on the title screen and in the menus.
+6. **A race runs.** Start Time Attack or a Grand Prix and finish a lap. Note
    whether it feels smooth; Options, HUD, Show FPS puts the frame rate on
    screen.
-6. **The other renderer.** Options, Video, Advanced, Renderer: Legacy GL; or
+7. **The other renderer.** Options, Video, Advanced, Renderer: Legacy GL; or
    `-opengl` in `ringracers-args.txt`. Same checks as 2 and 5.
-7. **Quitting** from the main menu returns to the home screen.
-8. **Saving.** Change an option, quit, start again: the change is kept.
-9. **Two players.** Sign in a second user from the PS button's menu with a
+8. **Quitting** from the main menu returns to the home screen.
+9. **Saving.** Change an option, quit, start again: the change is kept.
+10. **Two players.** Sign in a second user from the PS button's menu with a
    second controller and start a splitscreen race.
-10. **Online.** Open the server browser; host a game and join it from a PC
+11. **Online.** Open the server browser; host a game and join it from a PC
     running the same build (2.4 servers are not listed, see above).
-11. **Display modes.** `-ps5res 2160` and `-ps5hz 120` in the arguments file;
+12. **Display modes.** `-ps5res 2160` and `-ps5hz 120` in the arguments file;
     `vid_info` in the console shows what the TV accepted.
-12. **USB keyboard**, if you have one: the console (the key above Tab) and chat.
+13. **USB keyboard**, if you have one: the console (the key above Tab) and chat.
 
 ## How the port is put together
 
 | | |
 |---|---|
-| `src/ps5/` | the platform layer: video (EGL), input (DualSense), sound (AudioOut), system, paths, threads |
+| `src/ps5/` | the platform layer: video (EGL), input (DualSense), sound (AudioOut), system, paths, threads, and the first boot download |
 | `src/ps5/native/` | the title's C runtime: startup, the malloc heap, linker script, shims |
 | `cmake/ps5/` | the CMake toolchain and the PS5 link |
 | `tools/ps5/` | dependency fetching, building, packaging, and the title metadata and icon |

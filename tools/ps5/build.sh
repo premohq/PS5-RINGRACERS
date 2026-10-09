@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Build Dr. Robotnik's Ring Racers for the PlayStation 5, from nothing.
 #
-#   tools/ps5/build.sh [--assets /path/to/RingRacers | --no-assets] [-j N]
+#   tools/ps5/build.sh [--bundle-data | --assets /path/to/RingRacers] [-j N]
 #
 # Fetches the toolchain (tools/ps5/deps.sh), configures and builds with
-# cmake/ps5/Toolchain-PS5.cmake into build/ps5, and packages the title with
-# the game data in it (tools/ps5/package.sh). See docs/PS5.md.
+# cmake/ps5/Toolchain-PS5.cmake into build/ps5, and packages the title
+# (tools/ps5/package.sh), which downloads the game data on its first boot
+# unless --bundle-data or --assets puts it in the title. See docs/PS5.md.
 
 set -euo pipefail
 
@@ -17,10 +18,10 @@ package_args=()
 while (( $# > 0 )); do
 	case "$1" in
 		--assets) package_args+=(--assets "${2:?}"); shift 2 ;;
-		--no-assets) package_args+=(--no-assets); shift ;;
+		--bundle-data) package_args+=(--bundle-data); shift ;;
 		-j) jobs=${2:?}; shift 2 ;;
 		-j*) jobs=${1#-j}; shift ;;
-		*) echo "usage: $0 [--assets /path/to/RingRacers | --no-assets] [-j N]" >&2; exit 2 ;;
+		*) echo "usage: $0 [--bundle-data | --assets /path/to/RingRacers] [-j N]" >&2; exit 2 ;;
 	esac
 done
 

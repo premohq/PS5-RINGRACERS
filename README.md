@@ -33,18 +33,23 @@ replays and profiles are the PC version's.
 
 [docs/PS5.md](docs/PS5.md) has the full list, including what is missing.
 
-## The game data comes with it
+## The first boot downloads the game data
 
-Every build carries the game's `bios.pk3` and `data/` from Kart Krew's own
-Ring Racers 2.4 release, downloaded at build time and checked against a
-pinned SHA-256. They are not committed here: the music alone is 313 MB, over
-GitHub's 100 MB limit for a file.
+The title is about 60 MB. The first time it starts, it downloads the game's
+`bios.pk3` and `data/` (750 MB) from Kart Krew's own Ring Racers 2.4 release
+into `/data/ringracers/`, checks them against a pinned SHA-256 and unpacks
+them, on a screen of its own in the game's font. Every start after that goes
+straight to the game. An interrupted download picks up where it stopped on
+the next start.
+
+The data is not committed here: the music alone is 313 MB, over GitHub's
+100 MB limit for a file.
 
 ## Getting a build
 
 **Download one:** every push is built by GitHub Actions. Open the
 **Actions** tab, choose the latest green **PS5 build** run, and download the
-`PPSA99620` artifact. It is the whole title, game data included.
+`PPSA99620` artifact.
 
 **Or build it** on Linux or WSL:
 
@@ -54,14 +59,15 @@ tools/ps5/build.sh
 ```
 
 That fetches every SDK and the game data (pinned, checksummed), builds, and
-writes the title folder to `build/ps5/dist/PPSA99620/`. Add `--no-assets` to
-leave the game data out when it is already on the console.
+writes the title folder to `build/ps5/dist/PPSA99620/`. Add `--bundle-data` to
+put the game data in the title, for a console that is not online.
 
 ## Installing
 
 1. Copy the `PPSA99620` folder to `/data/homebrew/` with an FTP client.
 2. Launch it the way your loader launches native titles (ShadowMountPlus, for
-   example).
+   example). The first launch needs the console online to download the game
+   data.
 
 Settings, saves and logs go to `/data/ringracers/`, where FTP can reach
 them. Command line arguments go in `/data/ringracers/ringracers-args.txt`.

@@ -1,6 +1,7 @@
 # Build the PlayStation 5 title on every push, so that a build to test is one
-# download away: the run's PPSA99620 artifact is the title folder with the
-# game data in it, ready to copy to the console. See docs/PS5.md.
+# download away: the run's PPSA99620 artifact is the title folder, ready to
+# copy to the console, which downloads the game data on its first boot. See
+# docs/PS5.md.
 
 name: PS5 build
 
@@ -26,9 +27,10 @@ jobs:
             clang-18 lld-18 libclang-rt-18-dev cmake ninja-build \
             python3 python3-venv curl unzip git
 
-      # About 600 MB of SDKs and 750 MB of game data, each checked against
-      # its pinned SHA-256 by tools/ps5/deps.sh or tools/ps5/game-data.sh
-      # whether it came from here or from the network.
+      # About 600 MB of SDKs and 750 MB of game data (the first boot screen
+      # takes the game's font from it), each checked against its pinned
+      # SHA-256 by tools/ps5/deps.sh or tools/ps5/game-data.sh whether it
+      # came from here or from the network.
       - name: Cache the downloads
         uses: actions/cache@v4
         with:
